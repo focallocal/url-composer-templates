@@ -1,0 +1,14 @@
+/* URL Composer Templates Styles */
+
+/* Optional: Add visual indicator when template is active */
+.composer-container.has-template .d-editor-textarea-wrapper::before {
+  content: "📝 Template loaded";
+  display: block;
+  padding: 0.5em;
+  background: var(--tertiary-low);
+  border: 1px solid var(--tertiary);
+  border-radius: 4px;
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+  color: var(--primary);
+}
