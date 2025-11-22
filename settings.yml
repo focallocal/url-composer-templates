@@ -24,6 +24,7 @@ template_1_id:
 template_1_text:
   default: "**What happened:**\n\n\n**When:**\n\n\n**Location:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_1_use_for:
@@ -49,6 +50,7 @@ template_2_id:
 template_2_text:
   default: "I'm going! :raised_hand:\n\n**Bringing:**\n\n\n**Notes:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_2_use_for:
@@ -74,6 +76,7 @@ template_3_id:
 template_3_text:
   default: "**Who I'm inviting:**\n\n\n**Why they'd be interested:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_3_use_for:
@@ -85,20 +88,21 @@ template_3_use_for:
     - both
   description: "When to apply this template"
 
-# Template 4 - Custom
+# Template 4 - Wall
 template_4_enabled:
-  default: false
+  default: true
   type: bool
-  description: "Enable template 4 (Custom)"
+  description: "Enable template 4 (Wall)"
 
 template_4_id:
-  default: "custom1"
+  default: "wall"
   type: string
   description: "URL parameter value to match"
 
 template_4_text:
-  default: ""
+  default: "**What's on my mind:**\n\n\n**Sharing with:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_4_use_for:
@@ -110,20 +114,21 @@ template_4_use_for:
     - both
   description: "When to apply this template"
 
-# Template 5 - Custom
+# Template 5 - Media
 template_5_enabled:
-  default: false
+  default: true
   type: bool
-  description: "Enable template 5 (Custom)"
+  description: "Enable template 5 (Media)"
 
 template_5_id:
-  default: "custom2"
+  default: "media"
   type: string
   description: "URL parameter value to match"
 
 template_5_text:
-  default: ""
+  default: "**Photo/Video:**\n\n\n**Description:**\n\n\n**Credit:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_5_use_for:
@@ -135,20 +140,21 @@ template_5_use_for:
     - both
   description: "When to apply this template"
 
-# Template 6 - Custom
+# Template 6 - Stories
 template_6_enabled:
-  default: false
+  default: true
   type: bool
-  description: "Enable template 6 (Custom)"
+  description: "Enable template 6 (Stories)"
 
 template_6_id:
-  default: "custom3"
+  default: "stories"
   type: string
   description: "URL parameter value to match"
 
 template_6_text:
-  default: ""
+  default: "**My story:**\n\n\n**What I learned:**\n\n"
   type: string
+  textarea: true
   description: "Template text to pre-fill in composer"
 
 template_6_use_for:
