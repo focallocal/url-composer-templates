@@ -18,6 +18,23 @@ export default apiInitializer("1.8.0", (api) => {
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
 
+  // Listen for composer template from iframe via postMessage
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'dcs-composer-template') {
+      const templateId = event.data.template;
+      if (templateId) {
+        sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
+        log("📨 Stored template ID from postMessage:", templateId);
+        // Trigger auto-open after short delay to allow page transition
+        setTimeout(() => {
+          if (settings.enable_auto_open_composer) {
+            autoOpenComposerIfNeeded();
+          }
+        }, 500);
+      }
+    }
+  });
+
   // Get all enabled templates from settings
   const getEnabledTemplates = () => {
     const templates = [];
