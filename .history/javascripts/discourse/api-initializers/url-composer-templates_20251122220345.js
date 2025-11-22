@@ -104,57 +104,57 @@ export default apiInitializer("1.8.0", (api) => {
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
   };
 
-  // Use composer:opened event instead of onShow hook (more reliable with Docuss)
-  api.onAppEvent("composer:opened", () => {
-    log("🔔 composer:opened event fired");
+  // Intercept composer open events
+  api.modifyClass("controller:composer", {
+    pluginId: "url-composer-templates",
 
-    // Use a longer delay to allow Docuss to fully set up the composer (category, tags, etc.)
-    schedule("afterRender", () => {
-      log("⏰ afterRender scheduled, starting 800ms delay");
-      setTimeout(() => {
-        log("✅ setTimeout completed, checking template");
-        const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
-        const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
-        log("Template state:", { templateId, alreadyApplied });
+    onShow() {
+      this._super(...arguments);
 
-        if (!templateId || alreadyApplied) {
-          log("Skipping: no template ID or already applied");
-          return;
-        }
+      log("🔔 onShow hook fired");
 
-        const template = findTemplate(templateId);
-        if (!template) {
-          log("No matching template found for ID:", templateId);
-          return;
-        }
+      // Use a longer delay to allow Docuss to fully set up the composer (category, tags, etc.)
+      schedule("afterRender", () => {
+        log("⏰ afterRender scheduled, starting 800ms delay");
+        setTimeout(() => {
+          log("✅ setTimeout completed, checking template");
+          const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+          const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+          log("Template state:", { templateId, alreadyApplied });
 
-        const composerController = api.container.lookup("controller:composer");
-        const model = composerController?.model || composerController?.get?.("model");
-        if (!model) {
-          log("No composer model found");
-          return;
-        }
+          if (!templateId || alreadyApplied) {
+            return;
+          }
 
-        const isCreatingTopic = model.get("creatingTopic");
-        log("Composer context:", { isCreatingTopic, useFor: template.useFor });
+          const template = findTemplate(templateId);
+          if (!template) {
+            log("No matching template found for ID:", templateId);
+            return;
+          }
 
-        if (shouldApplyTemplate(template, isCreatingTopic)) {
-          applyTemplate(model, template);
-        } else {
-          log("Template not applicable for current context:", {
-            templateId,
-            useFor: template.useFor,
-            isCreatingTopic,
-          });
-        }
-      }, 800); // Increased delay to let Docuss finish its setup
-    });
-  });
+          const model = this.get("model");
+          if (!model) return;
 
-  // Clear applied flag when composer closes
-  api.onAppEvent("composer:closed", () => {
-    log("Composer closed, clearing applied flag");
-    sessionStorage.removeItem(STORAGE_KEY_APPLIED);
+          const isCreatingTopic = model.get("creatingTopic");
+
+          if (shouldApplyTemplate(template, isCreatingTopic)) {
+            applyTemplate(model, template);
+          } else {
+            log("Template not applicable for current context:", {
+              templateId,
+              useFor: template.useFor,
+              isCreatingTopic,
+            });
+          }
+        }, 800); // Increased delay to let Docuss finish its setup
+      });
+    },
+
+    onClose() {
+      this._super(...arguments);
+      // Clear applied flag when composer closes
+      sessionStorage.removeItem(STORAGE_KEY_APPLIED);
+    },
   });
 
   // Detect URL parameter changes on page navigation
