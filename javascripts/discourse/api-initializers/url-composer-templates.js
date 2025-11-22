@@ -25,12 +25,8 @@ export default apiInitializer("1.8.0", (api) => {
       if (templateId) {
         sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
         log("📨 Stored template ID from postMessage:", templateId);
-        // Trigger auto-open after short delay to allow page transition
-        setTimeout(() => {
-          if (settings.enable_auto_open_composer) {
-            autoOpenComposerIfNeeded();
-          }
-        }, 500);
+        // Note: Don't auto-open here - let Docuss/DCSLink handle composer opening
+        // Template will be applied when composer opens via onShow() hook
       }
     }
   });
@@ -113,34 +109,37 @@ export default apiInitializer("1.8.0", (api) => {
     onShow() {
       this._super(...arguments);
 
+      // Use a longer delay to allow Docuss to fully set up the composer (category, tags, etc.)
       schedule("afterRender", () => {
-        const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
-        const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+        setTimeout(() => {
+          const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+          const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
 
-        if (!templateId || alreadyApplied) {
-          return;
-        }
+          if (!templateId || alreadyApplied) {
+            return;
+          }
 
-        const template = findTemplate(templateId);
-        if (!template) {
-          log("No matching template found for ID:", templateId);
-          return;
-        }
+          const template = findTemplate(templateId);
+          if (!template) {
+            log("No matching template found for ID:", templateId);
+            return;
+          }
 
-        const model = this.get("model");
-        if (!model) return;
+          const model = this.get("model");
+          if (!model) return;
 
-        const isCreatingTopic = model.get("creatingTopic");
+          const isCreatingTopic = model.get("creatingTopic");
 
-        if (shouldApplyTemplate(template, isCreatingTopic)) {
-          applyTemplate(model, template);
-        } else {
-          log("Template not applicable for current context:", {
-            templateId,
-            useFor: template.useFor,
-            isCreatingTopic,
-          });
-        }
+          if (shouldApplyTemplate(template, isCreatingTopic)) {
+            applyTemplate(model, template);
+          } else {
+            log("Template not applicable for current context:", {
+              templateId,
+              useFor: template.useFor,
+              isCreatingTopic,
+            });
+          }
+        }, 800); // Increased delay to let Docuss finish its setup
       });
     },
 
