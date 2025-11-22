@@ -144,11 +144,11 @@ export default apiInitializer("1.8.0", (api) => {
     });
   });
 
-  // Initial check
+  // Initial check - increased delay to ensure url-composer-templates hooks are attached
   schedule("afterRender", () => {
     setTimeout(() => {
       autoOpenComposerIfNeeded();
-    }, 1000);
+    }, 1500);
   });
 
   log("Auto-open initialization complete");
