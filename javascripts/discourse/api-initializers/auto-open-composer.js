@@ -3,7 +3,7 @@ import { schedule } from "@ember/runloop";
 import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
-  if (!settings.enable_url_composer_templates) {
+  if (!settings.enable_url_composer_templates || !settings.enable_auto_open_composer) {
     return;
   }
 
@@ -17,22 +17,6 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
-
-  // Get template configuration
-  const getTemplate = (templateId) => {
-    for (let i = 1; i <= 6; i++) {
-      const enabled = settings[`template_${i}_enabled`];
-      const id = settings[`template_${i}_id`];
-      if (enabled && id === templateId) {
-        return {
-          id,
-          text: settings[`template_${i}_text`],
-          autoOpen: settings[`template_${i}_auto_open`],
-        };
-      }
-    }
-    return null;
-  };
 
   // Extract tags from current URL
   const getTagsFromUrl = () => {
@@ -91,7 +75,7 @@ export default apiInitializer("1.8.0", (api) => {
     const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
     const alreadyChecked = sessionStorage.getItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
 
-    // Only check once per page load
+    // Only check once per page load, and only if a template parameter exists
     if (alreadyChecked || !templateId) {
       return;
     }
@@ -99,13 +83,7 @@ export default apiInitializer("1.8.0", (api) => {
     // Mark as checked
     sessionStorage.setItem(STORAGE_KEY_AUTO_OPEN_CHECKED, "true");
 
-    const template = getTemplate(templateId);
-    if (!template || !template.autoOpen) {
-      log("Template does not have auto-open enabled:", templateId);
-      return;
-    }
-
-    log("Checking if we should auto-open composer for template:", templateId);
+    log("Checking if we should auto-open composer for Docuss link with template:", templateId);
 
     const tags = getTagsFromUrl();
     const topicExists = await checkTopicExists(tags);

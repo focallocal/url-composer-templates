@@ -5,6 +5,11 @@ enable_url_composer_templates:
   type: bool
   description: "Enable URL parameter-based composer templates"
 
+enable_auto_open_composer:
+  default: true
+  type: bool
+  description: "Auto-open composer when clicking any Docuss link if no thread exists yet"
+
 # Template 1 - Report
 template_1_enabled:
   default: true
@@ -29,11 +34,6 @@ template_1_use_for:
     - all_replies
     - both
   description: "When to apply this template"
-
-template_1_auto_open:
-  default: true
-  type: bool
-  description: "Auto-open composer if no topic exists for this page/tag combination"
 
 # Template 2 - Going
 template_2_enabled:
@@ -60,11 +60,6 @@ template_2_use_for:
     - both
   description: "When to apply this template"
 
-template_2_auto_open:
-  default: false
-  type: bool
-  description: "Auto-open composer if no topic exists"
-
 # Template 3 - Invite
 template_3_enabled:
   default: true
@@ -89,11 +84,6 @@ template_3_use_for:
     - all_replies
     - both
   description: "When to apply this template"
-
-template_3_auto_open:
-  default: false
-  type: bool
-  description: "Auto-open composer if no topic exists"
 
 # Template 4 - Custom
 template_4_enabled:
@@ -120,11 +110,6 @@ template_4_use_for:
     - both
   description: "When to apply this template"
 
-template_4_auto_open:
-  default: false
-  type: bool
-  description: "Auto-open composer if no topic exists"
-
 # Template 5 - Custom
 template_5_enabled:
   default: false
@@ -150,11 +135,6 @@ template_5_use_for:
     - both
   description: "When to apply this template"
 
-template_5_auto_open:
-  default: false
-  type: bool
-  description: "Auto-open composer if no topic exists"
-
 # Template 6 - Custom
 template_6_enabled:
   default: false
@@ -179,11 +159,6 @@ template_6_use_for:
     - all_replies
     - both
   description: "When to apply this template"
-
-template_6_auto_open:
-  default: false
-  type: bool
-  description: "Auto-open composer if no topic exists"
 
 debug_mode:
   default: false
