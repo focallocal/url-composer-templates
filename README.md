@@ -1,0 +1,231 @@
+# URL Composer Templates
+
+A Discourse theme component that pre-fills the composer with template text based on URL parameters. Designed to work seamlessly with Docuss to provide context-specific templates for different types of interactions.
+
+## Features
+
+- **URL Parameter Support**: Automatically detects `?composer_template=X` in URLs and applies the corresponding template
+- **Multiple Template Types**: Configure up to 6 different templates for different purposes (report, going, invite, custom templates)
+- **Auto-Open Composer**: Optionally auto-opens the composer when visiting a Docuss link with no existing threads
+- **Flexible Application**: Templates can apply to first post only, all replies, or both
+- **Session Persistence**: Uses sessionStorage to maintain template selection across page navigations
+- **Debug Mode**: Enable detailed console logging to troubleshoot template application
+
+## Installation
+
+1. Go to your Discourse Admin Panel
+2. Navigate to **Customize** → **Themes**
+3. Click **Install** → **From a Git repository**
+4. Enter the repository URL: `https://github.com/focallocal/url-composer-templates`
+5. Click **Install**
+6. Add the component to your active theme
+
+## Configuration
+
+### Template Settings
+
+Each template has three configuration options:
+
+#### Template 1 (Report)
+- **template_1_id**: `report` - The URL parameter value to trigger this template
+- **template_1_text**: The text to pre-fill in the composer
+- **template_1_use_for**: `first_post` - Apply only when creating new topics
+
+#### Template 2 (Going)
+- **template_2_id**: `going` - For "I'm going" type interactions
+- **template_2_text**: Pre-filled text for going confirmations
+- **template_2_use_for**: `all_replies` - Apply to all replies (not first posts)
+
+#### Template 3 (Invite)
+- **template_3_id**: `invite` - For invitation interactions
+- **template_3_text**: Pre-filled text for invitations
+- **template_3_use_for**: `all_replies` - Apply to all replies
+
+#### Templates 4-6 (Custom)
+- Disabled by default
+- Can be enabled and customized for specific use cases
+- Configure ID, text, and application scope as needed
+
+### Auto-Open Settings
+
+- **enable_auto_open_composer**: `true` - When enabled, automatically opens the composer if:
+  - A Docuss link is clicked (URL contains `?composer_template=X`)
+  - No threads exist yet for that tag combination
+  - Helps users start discussions immediately
+
+### Debug Mode
+
+- **debug_mode**: `false` - Enable to see detailed console logs with emoji prefixes:
+  - 🎨 Template application logs
+  - 🚀 Auto-open composer logs
+
+## Docuss Integration
+
+### Automatic Integration
+
+The url-composer-templates component is designed to work automatically with Docuss. When you have both:
+- This component installed on your Discourse instance
+- The updated Docuss client and plugin (with composer_template support)
+
+Templates will be automatically applied based on:
+1. **Interact Mode**: 
+   - `DISCUSS` mode → Uses triggerId hints (going, invite) or defaults to `report`
+   - `COMMENT` mode → Uses `report` template
+
+### Custom Templates via HTML Attributes
+
+For more precise control, you can specify templates directly in your HTML using the `data-dcs-composer-template` attribute:
+
+```html
+<!-- Example: Report button -->
+<div class="dcs-trigger" 
+     data-dcs-trigger-id="issue-report"
+     data-dcs-interact-mode="DISCUSS"
+     data-dcs-composer-template="report">
+  Report an Issue
+</div>
+
+<!-- Example: Going button -->
+<div class="dcs-trigger" 
+     data-dcs-trigger-id="event-rsvp"
+     data-dcs-interact-mode="DISCUSS"
+     data-dcs-composer-template="going">
+  I'm Going!
+</div>
+
+<!-- Example: Invite button -->
+<div class="dcs-trigger" 
+     data-dcs-trigger-id="invite-friends"
+     data-dcs-interact-mode="DISCUSS"
+     data-dcs-composer-template="invite">
+  Invite Friends
+</div>
+
+<!-- Example: Custom template -->
+<div class="dcs-trigger" 
+     data-dcs-trigger-id="feedback"
+     data-dcs-interact-mode="DISCUSS"
+     data-dcs-composer-template="custom1">
+  Give Feedback
+</div>
+```
+
+### Template ID Matching
+
+The component matches template IDs from the URL parameter with the configured template IDs:
+
+| URL Parameter | Template Setting | Default Purpose |
+|--------------|------------------|-----------------|
+| `?composer_template=report` | `template_1_id` | Bug reports, issues |
+| `?composer_template=going` | `template_2_id` | Event RSVPs |
+| `?composer_template=invite` | `template_3_id` | Invitations |
+| `?composer_template=custom1` | `template_4_id` | Custom use |
+| `?composer_template=custom2` | `template_5_id` | Custom use |
+| `?composer_template=custom3` | `template_6_id` | Custom use |
+
+## How It Works
+
+### Template Application Flow
+
+1. **URL Detection**: When a user navigates to a URL with `?composer_template=X`, the component stores the template ID in sessionStorage
+2. **Composer Interception**: When the composer opens, the component checks for a stored template ID
+3. **Template Matching**: Finds the matching template based on ID
+4. **Scope Validation**: Checks if the template should apply (first post, reply, or both)
+5. **Text Insertion**: Pre-fills the composer with the template text
+6. **Cleanup**: Marks the template as applied to prevent re-application
+
+### Auto-Open Flow
+
+1. **Parameter Detection**: Checks if URL contains `?composer_template=X` and auto-open is enabled
+2. **Topic Search**: Searches for existing topics with the current tag combination
+3. **Composer Opening**: If no topics found, automatically opens the composer
+4. **Template Application**: The template is then applied via the normal flow above
+
+## Example Use Cases
+
+### Event Website
+```yaml
+# settings.yml
+template_2_id: "going"
+template_2_text: "I'm planning to attend! 🎉\n\nLooking forward to seeing everyone there."
+template_2_use_for: "all_replies"
+
+template_3_id: "invite"
+template_3_text: "I'd like to invite friends to this event.\n\nWho I'm inviting:\n- \n\nWhy they should come:\n"
+template_3_use_for: "first_post"
+```
+
+### Issue Tracking
+```yaml
+template_1_id: "bug"
+template_1_text: "**Bug Description:**\n\n**Steps to Reproduce:**\n1. \n2. \n3. \n\n**Expected Behavior:**\n\n**Actual Behavior:**\n"
+template_1_use_for: "first_post"
+
+template_4_enabled: true
+template_4_id: "feature"
+template_4_text: "**Feature Request:**\n\n**Use Case:**\n\n**Proposed Solution:**\n"
+template_4_use_for: "first_post"
+```
+
+### Community Engagement
+```yaml
+template_1_id: "question"
+template_1_text: "**My Question:**\n\n**What I've Tried:**\n\n**Additional Context:**\n"
+template_1_use_for: "first_post"
+
+template_2_id: "answer"
+template_2_text: "Here's what worked for me:\n\n**Solution:**\n\n**Why it works:**\n"
+template_2_use_for: "all_replies"
+```
+
+## Troubleshooting
+
+### Templates Not Applying
+
+1. **Check URL Parameter**: Ensure the URL contains `?composer_template=X` where X matches a template ID
+2. **Enable Debug Mode**: Turn on `debug_mode` in settings to see console logs
+3. **Verify Template Scope**: Check if `use_for` setting matches your action (creating topic vs replying)
+4. **Clear SessionStorage**: Open browser console and run: `sessionStorage.clear()`
+
+### Auto-Open Not Working
+
+1. **Check Setting**: Ensure `enable_auto_open_composer` is set to `true`
+2. **Verify URL**: Auto-open only works when URL contains `?composer_template=X`
+3. **Check Existing Topics**: Auto-open only triggers when NO topics exist with the tag combination
+4. **Enable Debug Mode**: Look for 🚀 emoji logs in the console
+
+### Wrong Template Applying
+
+1. **Check Template IDs**: Ensure your URL parameter matches the template ID exactly (case-sensitive)
+2. **Verify Priority**: If multiple templates could match, the first matching template is used
+3. **Clear Session**: SessionStorage might contain old values: `sessionStorage.clear()`
+
+### Docuss Integration Issues
+
+1. **Update Docuss**: Ensure you have the latest versions of:
+   - `dcs-client` (with composerTemplate support in HtmlBased.js)
+   - `dcs-discourse-plugin` (with URL parameter generation in DcsIFrame.js.es6)
+2. **Check HTML Attributes**: Verify `data-dcs-composer-template` is set correctly on triggers
+3. **Inspect Network**: Check browser DevTools Network tab to see if URL parameters are being added
+
+## Version History
+
+### v1.0.0 (Current)
+- Initial release
+- Support for 6 configurable templates
+- URL parameter-based template selection
+- Auto-open composer for Docuss links
+- SessionStorage persistence
+- Debug mode for troubleshooting
+
+## Contributing
+
+Found a bug or have a feature request? Please open an issue on the [GitHub repository](https://github.com/focallocal/url-composer-templates).
+
+## License
+
+This component is open source and available under the MIT License.
+
+## Credits
+
+Developed by [Andy@Focallocal](https://github.com/focallocal) for use with [Docuss](https://github.com/sylque/docuss) - a system for embedding Discourse discussions into any website.
