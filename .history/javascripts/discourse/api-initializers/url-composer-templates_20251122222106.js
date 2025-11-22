@@ -41,7 +41,6 @@ export default apiInitializer("1.8.0", (api) => {
       if (enabled) {
         templates.push({
           id: settings[`template_${i}_id`],
-          title: settings[`template_${i}_title`],
           text: settings[`template_${i}_text`],
           useFor: settings[`template_${i}_use_for`],
           autoOpen: settings[`template_${i}_auto_open`],
@@ -100,12 +99,6 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     composerModel.set("reply", template.text);
-    
-    // Set title if provided and composer is for creating a topic
-    if (template.title && composerModel.get("creatingTopic")) {
-      composerModel.set("title", template.title);
-      log("Applied title:", template.title);
-    }
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");

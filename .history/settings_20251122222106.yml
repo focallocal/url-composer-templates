@@ -21,11 +21,6 @@ template_1_id:
   type: string
   description: "URL parameter value to match (e.g., ?composer_template=report)"
 
-template_1_title:
-  default: ""
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_1_text:
   default: "**What happened:**\n\n\n**When:**\n\n\n**Location:**\n\n"
   type: string
@@ -52,11 +47,6 @@ template_2_id:
   type: string
   description: "URL parameter value to match"
 
-template_2_title:
-  default: "I'm Going!"
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_2_text:
   default: "I'm going! :raised_hand:\n\n**Bringing:**\n\n\n**Notes:**\n\n"
   type: string
@@ -64,7 +54,7 @@ template_2_text:
   description: "Template text to pre-fill in composer"
 
 template_2_use_for:
-  default: "both"
+  default: "all_replies"
   type: enum
   choices:
     - first_post
@@ -83,11 +73,6 @@ template_3_id:
   type: string
   description: "URL parameter value to match"
 
-template_3_title:
-  default: "Inviting Friends"
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_3_text:
   default: "**Who I'm inviting:**\n\n\n**Why they'd be interested:**\n\n"
   type: string
@@ -95,7 +80,7 @@ template_3_text:
   description: "Template text to pre-fill in composer"
 
 template_3_use_for:
-  default: "both"
+  default: "all_replies"
   type: enum
   choices:
     - first_post
@@ -114,11 +99,6 @@ template_4_id:
   type: string
   description: "URL parameter value to match"
 
-template_4_title:
-  default: ""
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_4_text:
   default: "**What's on my mind:**\n\n\n**Sharing with:**\n\n"
   type: string
@@ -126,7 +106,7 @@ template_4_text:
   description: "Template text to pre-fill in composer"
 
 template_4_use_for:
-  default: "both"
+  default: "first_post"
   type: enum
   choices:
     - first_post
@@ -145,11 +125,6 @@ template_5_id:
   type: string
   description: "URL parameter value to match"
 
-template_5_title:
-  default: "Sharing Media"
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_5_text:
   default: "**Photo/Video:**\n\n\n**Description:**\n\n\n**Credit:**\n\n"
   type: string
@@ -157,7 +132,7 @@ template_5_text:
   description: "Template text to pre-fill in composer"
 
 template_5_use_for:
-  default: "both"
+  default: "first_post"
   type: enum
   choices:
     - first_post
@@ -176,11 +151,6 @@ template_6_id:
   type: string
   description: "URL parameter value to match"
 
-template_6_title:
-  default: "My Story"
-  type: string
-  description: "Optional title to pre-fill in composer (leave empty for no title)"
-
 template_6_text:
   default: "**My story:**\n\n\n**What I learned:**\n\n"
   type: string
@@ -188,7 +158,7 @@ template_6_text:
   description: "Template text to pre-fill in composer"
 
 template_6_use_for:
-  default: "both"
+  default: "first_post"
   type: enum
   choices:
     - first_post
