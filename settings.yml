@@ -23,7 +23,7 @@ template_1_id:
 
 template_1_text:
   default: "**What happened:**\n\n\n**When:**\n\n\n**Location:**\n\n"
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_1_use_for:
@@ -48,7 +48,7 @@ template_2_id:
 
 template_2_text:
   default: "I'm going! :raised_hand:\n\n**Bringing:**\n\n\n**Notes:**\n\n"
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_2_use_for:
@@ -73,7 +73,7 @@ template_3_id:
 
 template_3_text:
   default: "**Who I'm inviting:**\n\n\n**Why they'd be interested:**\n\n"
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_3_use_for:
@@ -98,7 +98,7 @@ template_4_id:
 
 template_4_text:
   default: ""
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_4_use_for:
@@ -123,7 +123,7 @@ template_5_id:
 
 template_5_text:
   default: ""
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_5_use_for:
@@ -148,7 +148,7 @@ template_6_id:
 
 template_6_text:
   default: ""
-  type: text
+  type: string
   description: "Template text to pre-fill in composer"
 
 template_6_use_for:
