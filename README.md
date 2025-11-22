@@ -13,12 +13,17 @@ A Discourse theme component that pre-fills the composer with template text based
 
 ## Installation
 
-1. Go to your Discourse Admin Panel
-2. Navigate to **Customize** → **Themes**
-3. Click **Install** → **From a Git repository**
-4. Enter the repository URL: `https://github.com/focallocal/url-composer-templates`
-5. Click **Install**
-6. Add the component to your active theme
+1. **Install the theme component on Discourse:**
+   - Go to Admin → Customize → Themes
+   - Click "Install" → "From a Git repository"
+   - Enter: `https://github.com/focallocal/url-composer-templates`
+   - Add the component to your active theme
+
+2. **No plugin rebuild required!** The `composer_template` parameter support already exists in dcs-discourse-plugin and dcs-client.
+
+3. **Deploy your React app (fl-maps)** with the updated DCSLink components that pass the `composerTemplate` prop.
+
+4. **Configure templates** in the component settings (Admin → Customize → Themes → your theme → url-composer-templates → Settings).
 
 ## Configuration
 
