@@ -54,7 +54,7 @@ template_2_text:
   description: "Template text to pre-fill in composer"
 
 template_2_use_for:
-  default: "all_replies"
+  default: "both"
   type: enum
   choices:
     - first_post
@@ -80,7 +80,7 @@ template_3_text:
   description: "Template text to pre-fill in composer"
 
 template_3_use_for:
-  default: "all_replies"
+  default: "both"
   type: enum
   choices:
     - first_post
@@ -106,7 +106,7 @@ template_4_text:
   description: "Template text to pre-fill in composer"
 
 template_4_use_for:
-  default: "first_post"
+  default: "both"
   type: enum
   choices:
     - first_post
@@ -132,7 +132,7 @@ template_5_text:
   description: "Template text to pre-fill in composer"
 
 template_5_use_for:
-  default: "first_post"
+  default: "both"
   type: enum
   choices:
     - first_post
@@ -158,7 +158,7 @@ template_6_text:
   description: "Template text to pre-fill in composer"
 
 template_6_use_for:
-  default: "first_post"
+  default: "both"
   type: enum
   choices:
     - first_post
