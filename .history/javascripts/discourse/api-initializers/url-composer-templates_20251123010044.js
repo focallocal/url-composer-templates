@@ -105,8 +105,11 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Set values - Discourse will handle drafts normally
-    // No need to disable drafts since template is applied before user interaction
+    // Temporarily disable draft saving to prevent 409 conflicts
+    const originalDraftKey = composerModel.get("draftKey");
+    composerModel.set("draftKey", null); // Disable drafts temporarily
+    
+    // Set values without triggering auto-save
     composerModel.set("reply", template.text);
     
     // Set title if provided and composer is for creating a topic
@@ -114,6 +117,12 @@ export default apiInitializer("1.8.0", (api) => {
       composerModel.set("title", template.title);
       log("Applied title:", template.title);
     }
+    
+    // Re-enable draft saving after a delay (gives user time to see template)
+    setTimeout(() => {
+      composerModel.set("draftKey", originalDraftKey);
+      log("Draft saving re-enabled");
+    }, 2000); // 2 second delay before allowing draft saves
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
