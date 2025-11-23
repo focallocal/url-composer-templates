@@ -104,25 +104,12 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     log("Applying template:", template.id);
-    
-    // Set values without triggering auto-save by using setProperties
-    const updates = { reply: template.text };
+    composerModel.set("reply", template.text);
     
     // Set title if provided and composer is for creating a topic
     if (template.title && composerModel.get("creatingTopic")) {
-      updates.title = template.title;
+      composerModel.set("title", template.title);
       log("Applied title:", template.title);
-    }
-    
-    // Apply all updates at once to minimize draft saves
-    composerModel.setProperties(updates);
-    
-    // Prevent immediate draft save by marking as pristine
-    if (composerModel.set) {
-      // Tell Discourse not to save this as a draft immediately
-      setTimeout(() => {
-        composerModel.set("draftSaving", false);
-      }, 50);
     }
 
     // Mark as applied so we don't re-apply on model changes
@@ -164,10 +151,7 @@ export default apiInitializer("1.8.0", (api) => {
         log("Composer context:", { isCreatingTopic, useFor: template.useFor });
 
         if (shouldApplyTemplate(template, isCreatingTopic)) {
-          // Add small delay before applying to let Discourse fully initialize composer state
-          setTimeout(() => {
-            applyTemplate(model, template);
-          }, 100);
+          applyTemplate(model, template);
         } else {
           log("Template not applicable for current context:", {
             templateId,
