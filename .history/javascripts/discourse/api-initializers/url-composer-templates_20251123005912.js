@@ -132,9 +132,9 @@ export default apiInitializer("1.8.0", (api) => {
   api.onAppEvent("composer:opened", () => {
     log("🔔 composer:opened event fired");
 
-    // Use a short delay to allow Docuss to set up category/tags, but template applies immediately
+    // Use a longer delay to allow Docuss to fully set up the composer (category, tags, etc.)
     schedule("afterRender", () => {
-      log("⏰ afterRender scheduled, starting 200ms delay");
+      log("⏰ afterRender scheduled, starting 800ms delay");
       setTimeout(() => {
         log("✅ setTimeout completed, checking template");
         const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
@@ -163,8 +163,10 @@ export default apiInitializer("1.8.0", (api) => {
         log("Composer context:", { isCreatingTopic, useFor: template.useFor });
 
         if (shouldApplyTemplate(template, isCreatingTopic)) {
-          // Apply template immediately - we've disabled draft saving so no conflicts
-          applyTemplate(model, template);
+          // Add small delay before applying to let Discourse fully initialize composer state
+          setTimeout(() => {
+            applyTemplate(model, template);
+          }, 100);
         } else {
           log("Template not applicable for current context:", {
             templateId,
@@ -172,7 +174,7 @@ export default apiInitializer("1.8.0", (api) => {
             isCreatingTopic,
           });
         }
-      }, 200); // Reduced delay - auto-open handles the longer wait
+      }, 800); // Increased delay to let Docuss finish its setup
     });
   });
 

@@ -1,0 +1,202 @@
+# URL Composer Templates Settings
+
+enable_url_composer_templates:
+  default: true
+  type: bool
+  description: "Enable URL parameter-based composer templates"
+
+enable_auto_open_composer:
+  default: false
+  type: bool
+  description: "Auto-open composer when clicking any Docuss link if no thread exists yet (disable if using with Docuss plugin which handles composer opening)"
+
+# Template 1 - Report
+template_1_enabled:
+  default: true
+  type: bool
+  description: "Enable template 1 (Report)"
+
+template_1_id:
+  default: "report"
+  type: string
+  description: "URL parameter value to match (e.g., ?composer_template=report)"
+
+template_1_title:
+  default: ""
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_1_text:
+  default: "**What happened:**\n\n\n**When:**\n\n\n**Location:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_1_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+# Template 2 - Going
+template_2_enabled:
+  default: true
+  type: bool
+  description: "Enable template 2 (Going)"
+
+template_2_id:
+  default: "going"
+  type: string
+  description: "URL parameter value to match"
+
+template_2_title:
+  default: "I'm Going!"
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_2_text:
+  default: "I'm going! :raised_hand:\n\n**Bringing:**\n\n\n**Notes:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_2_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+# Template 3 - Invite
+template_3_enabled:
+  default: true
+  type: bool
+  description: "Enable template 3 (Invite)"
+
+template_3_id:
+  default: "invite"
+  type: string
+  description: "URL parameter value to match"
+
+template_3_title:
+  default: "Inviting Friends"
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_3_text:
+  default: "**Who I'm inviting:**\n\n\n**Why they'd be interested:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_3_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+# Template 4 - Wall
+template_4_enabled:
+  default: true
+  type: bool
+  description: "Enable template 4 (Wall)"
+
+template_4_id:
+  default: "wall"
+  type: string
+  description: "URL parameter value to match"
+
+template_4_title:
+  default: ""
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_4_text:
+  default: "**What's on my mind:**\n\n\n**Sharing with:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_4_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+# Template 5 - Media
+template_5_enabled:
+  default: true
+  type: bool
+  description: "Enable template 5 (Media)"
+
+template_5_id:
+  default: "media"
+  type: string
+  description: "URL parameter value to match"
+
+template_5_title:
+  default: "Sharing Media"
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_5_text:
+  default: "**Photo/Video:**\n\n\n**Description:**\n\n\n**Credit:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_5_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+# Template 6 - Stories
+template_6_enabled:
+  default: true
+  type: bool
+  description: "Enable template 6 (Stories)"
+
+template_6_id:
+  default: "stories"
+  type: string
+  description: "URL parameter value to match"
+
+template_6_title:
+  default: "My Story"
+  type: string
+  description: "Optional title to pre-fill in composer (leave empty for no title)"
+
+template_6_text:
+  default: "**My story:**\n\n\n**What I learned:**\n\n"
+  type: string
+  textarea: true
+  description: "Template text to pre-fill in composer"
+
+template_6_use_for:
+  default: "both"
+  type: enum
+  choices:
+    - first_post
+    - all_replies
+    - both
+  description: "When to apply this template"
+
+debug_mode:
+  default: false
+  type: bool
+  description: "Enable console logging for debugging"
