@@ -143,7 +143,13 @@ export default apiInitializer("1.8.0", (api) => {
     deleteDraftPromise.finally(() => {
       schedule("afterRender", () => {
         saveBlocked = false;
-        log("Draft saving re-enabled - Discourse auto-save will handle next save");
+        log("Draft saving re-enabled");
+        
+        // Force a clean save to create new draft
+        if (composerModel && !composerModel.isDestroyed && !composerModel.isDestroying) {
+          composerModel.saveDraft();
+          log("Triggered manual draft save after template application");
+        }
       });
     });
 
