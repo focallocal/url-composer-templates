@@ -106,52 +106,54 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
+    // Delete any existing draft first to prevent conflicts
+    const draftKey = composerModel.get("draftKey");
+    if (draftKey) {
+      log("Deleting existing draft before applying template");
+      ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
+        .then(() => log("Existing draft deleted"))
+        .catch((e) => {
+          if (e.jqXHR?.status !== 404) {
+            log("Draft deletion warning:", e);
+          }
+        });
+    }
+    
     // Temporarily disable auto-save to prevent 409 draft conflicts
+    // This gives the template time to apply before Discourse tries to save
     const originalSaveDraft = composerModel.saveDraft;
     let saveBlocked = true;
     composerModel.saveDraft = function() {
       if (saveBlocked) {
         log("Draft save blocked during template application");
-        return Promise.resolve();
+        return;
       }
       return originalSaveDraft.apply(composerModel, arguments);
     };
     
-    // Delete any existing draft first to prevent conflicts
-    const draftKey = composerModel.get("draftKey");
-    const deleteDraftPromise = draftKey
-      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
-          .then(() => {
-            log("Existing draft deleted");
-          })
-          .catch((e) => {
-            if (e.jqXHR?.status !== 404) {
-              log("Draft deletion warning:", e);
-            }
-          })
-      : Promise.resolve();
-    
-    // Set template values
+    // Set values - apply template content
     composerModel.set("reply", template.text);
     
+    // Set title if provided and composer is for creating a topic
     if (template.title && composerModel.get("creatingTopic")) {
       composerModel.set("title", template.title);
       log("Applied title:", template.title);
     }
 
-    // Re-enable draft saving after deletion completes
-    deleteDraftPromise.finally(() => {
+    // Re-enable draft saving after a delay (1000ms)
+    // This allows the template to fully apply and draft deletion to complete
+    setTimeout(() => {
+      saveBlocked = false;
+      log("Draft saving re-enabled");
+      
+      // Force a clean save to create new draft after template application
       schedule("afterRender", () => {
-        saveBlocked = false;
-        log("Draft saving re-enabled");
-        
-        // Force a clean save to create new draft
         if (composerModel && !composerModel.isDestroyed && !composerModel.isDestroying) {
           composerModel.saveDraft();
           log("Triggered manual draft save after template application");
         }
       });
-    });
+    }, 1000);
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
