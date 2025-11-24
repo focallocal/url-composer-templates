@@ -171,14 +171,6 @@ export default apiInitializer("1.8.0", (api) => {
 
   // Run auto-open check on page changes
   api.onPageChange(() => {
-    // Check if composer is already open - if so, don't trigger another auto-open
-    // This prevents closing an open composer when page changes are triggered by opening it
-    const composer = api.container.lookup("controller:composer");
-    if (composer && composer.get("model")) {
-      log("Composer already open, skipping auto-open check on page change");
-      return;
-    }
-
     // Clear the checked flag so we can check again on new page
     sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
 
