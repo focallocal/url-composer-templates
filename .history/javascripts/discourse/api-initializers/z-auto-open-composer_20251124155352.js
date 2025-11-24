@@ -3,10 +3,7 @@ import { schedule } from "@ember/runloop";
 import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
-  console.log("🚀🚀🚀 AUTO-OPEN COMPOSER LOADED - VERSION 1.1.0 🚀🚀🚀");
-  
   if (!settings.enable_url_composer_templates || !settings.enable_auto_open_composer) {
-    console.log("🚀 Auto-open disabled via settings");
     return;
   }
 
