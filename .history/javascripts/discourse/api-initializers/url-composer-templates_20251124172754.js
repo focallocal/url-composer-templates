@@ -1,6 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
 import { schedule } from "@ember/runloop";
-import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
   if (!settings.enable_url_composer_templates) {
@@ -106,29 +105,11 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Delete any existing draft first to prevent conflicts
-    const draftKey = composerModel.get("draftKey");
-    if (draftKey) {
-      log("Deleting existing draft before applying template");
-      ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
-        .then(() => log("Existing draft deleted"))
-        .catch((e) => {
-          if (e.jqXHR?.status !== 404) {
-            log("Draft deletion warning:", e);
-          }
-        });
-    }
-    
     // Temporarily disable auto-save to prevent 409 draft conflicts
     // This gives the template time to apply before Discourse tries to save
     const originalSaveDraft = composerModel.saveDraft;
-    let saveBlocked = true;
     composerModel.saveDraft = () => {
-      if (saveBlocked) {
-        log("Draft save blocked during template application");
-        return;
-      }
-      return originalSaveDraft.apply(composerModel, arguments);
+      log("Draft save blocked during template application");
     };
     
     // Set values - apply template content
@@ -143,7 +124,7 @@ export default apiInitializer("1.8.0", (api) => {
     // Re-enable draft saving after a brief delay (500ms)
     // This allows the template to fully apply before Discourse auto-saves
     setTimeout(() => {
-      saveBlocked = false;
+      composerModel.saveDraft = originalSaveDraft;
       log("Draft saving re-enabled");
     }, 500);
 

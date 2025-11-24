@@ -1,6 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
 import { schedule } from "@ember/runloop";
-import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
   if (!settings.enable_url_composer_templates) {
