@@ -141,13 +141,10 @@ export default apiInitializer("1.8.0", (api) => {
 
     // Re-enable draft saving after deletion completes
     deleteDraftPromise.finally(() => {
-      // Add delay before re-enabling to prevent race conditions with Discourse's auto-save
-      setTimeout(() => {
-        schedule("afterRender", () => {
-          saveBlocked = false;
-          log("Draft saving re-enabled after delay");
-        });
-      }, 500);
+      schedule("afterRender", () => {
+        saveBlocked = false;
+        log("Draft saving re-enabled - Discourse auto-save will handle next save");
+      });
     });
 
     // Mark as applied so we don't re-apply on model changes

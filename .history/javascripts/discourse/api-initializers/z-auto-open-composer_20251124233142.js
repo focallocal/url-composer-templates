@@ -65,8 +65,8 @@ export default apiInitializer("1.8.0", (api) => {
       const tagsQuery = tags.join("+");
       
       // Build search query based on setting
-      // If checkUserOnly is true: search ONLY for topics by THIS user
-      // If checkUserOnly is false: search for topics by ANY user (all topics)
+      // If checkUserOnly is true: search for topics by THIS user only
+      // If checkUserOnly is false: search for topics by ANY user
       const searchQuery = checkUserOnly 
         ? `tags:${tagsQuery} @${currentUser.username}`
         : `tags:${tagsQuery}`;
