@@ -10,10 +10,35 @@ enable_auto_open_composer:
   type: bool
   description: "Auto-open composer when clicking any Docuss link if no thread exists yet (disable if using with Docuss plugin which handles composer opening)"
 
+template_param_key:
+  default: "composer_template"
+  type: string
+  description: "Query parameter name to read template IDs from. Leave blank to disable query parameter detection."
+
+# NEW: URL Pattern Configuration
+# Format per line: urlPattern|templateId|mode|timing
+# - urlPattern: URL substring to match (e.g., "/tags/intersection/intro/webdev")
+# - templateId: Which template to use (report, going, invite, wall, media, stories)
+# - mode: When to auto-open (always|ifNoTopics|ifUserHasNoTopic)
+# - timing: When template applies (first|replies|both)
+#
+# Example patterns:
+# /tags/intersection/introductions/webdevs|going|ifUserHasNoTopic|first
+# /tag/report|report|ifNoTopics|both
+# /docuss/m_|going|always|both
+
+url_patterns:
+  type: list
+  list_type: compact  
+  default: |
+    /tags/intersection|going|ifUserHasNoTopic|first
+  description: "URL pattern definitions - one per line. Format: urlPattern|templateId|mode|timing"
+
+# DEPRECATED - Use url_patterns above instead
 auto_open_check_user_only:
   default: true
   type: bool
-  description: "When auto-opening composer, only check if current user has created a thread (true) vs checking if ANY thread exists (false)"
+  description: "[DEPRECATED] Use url_patterns with mode=ifUserHasNoTopic instead. When auto-opening composer, only check if current user has created a thread (true) vs checking if ANY thread exists (false)"
 
 # Template 1 - Report
 template_1_enabled:
@@ -25,6 +50,11 @@ template_1_id:
   default: "report"
   type: string
   description: "URL parameter value to match (e.g., ?composer_template=report)"
+
+template_1_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/tags/intersection/report'). Leave blank to disable substring detection for this template."
 
 template_1_title:
   default: ""
@@ -44,7 +74,7 @@ template_1_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 # Template 2 - Going
 template_2_enabled:
@@ -56,6 +86,11 @@ template_2_id:
   default: "going"
   type: string
   description: "URL parameter value to match"
+
+template_2_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/tags/going'). Leave blank to disable substring detection for this template."
 
 template_2_title:
   default: "I'm Going!"
@@ -75,7 +110,7 @@ template_2_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 # Template 3 - Invite
 template_3_enabled:
@@ -87,6 +122,11 @@ template_3_id:
   default: "invite"
   type: string
   description: "URL parameter value to match"
+
+template_3_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/tags/intersection/invite'). Leave blank to disable substring detection for this template."
 
 template_3_title:
   default: "Inviting Friends"
@@ -106,7 +146,7 @@ template_3_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 # Template 4 - Wall
 template_4_enabled:
@@ -118,6 +158,11 @@ template_4_id:
   default: "wall"
   type: string
   description: "URL parameter value to match"
+
+template_4_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/wall'). Leave blank to disable substring detection for this template."
 
 template_4_title:
   default: ""
@@ -137,7 +182,7 @@ template_4_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 # Template 5 - Media
 template_5_enabled:
@@ -149,6 +194,11 @@ template_5_id:
   default: "media"
   type: string
   description: "URL parameter value to match"
+
+template_5_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/media-share'). Leave blank to disable substring detection for this template."
 
 template_5_title:
   default: "Sharing Media"
@@ -168,7 +218,7 @@ template_5_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 # Template 6 - Stories
 template_6_enabled:
@@ -180,6 +230,11 @@ template_6_id:
   default: "stories"
   type: string
   description: "URL parameter value to match"
+
+template_6_url_match:
+  default: ""
+  type: string
+  description: "[DEPRECATED] Configure via url_patterns instead. Optional substring to match in the current URL (e.g., '/stories'). Leave blank to disable substring detection for this template."
 
 template_6_title:
   default: "My Story"
@@ -199,7 +254,7 @@ template_6_use_for:
     - first_post
     - all_replies
     - both
-  description: "When to apply this template"
+  description: "[DEPRECATED] Configure via url_patterns timing field instead. When to apply this template"
 
 debug_mode:
   default: false

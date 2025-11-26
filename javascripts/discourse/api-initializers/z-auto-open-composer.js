@@ -3,7 +3,7 @@ import { schedule } from "@ember/runloop";
 import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
-  console.log("🚀🚀🚀 AUTO-OPEN COMPOSER LOADED - VERSION 1.2.0 🚀🚀🚀");
+  console.log("🚀🚀🚀 AUTO-OPEN COMPOSER LOADED - VERSION 2.0.0 🚀🚀🚀");
   
   if (!settings.enable_url_composer_templates || !settings.enable_auto_open_composer) {
     console.log("🚀 Auto-open disabled via settings");
@@ -20,6 +20,67 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
+  
+  // Topic creation cache - prevents duplicate opens when search index lags
+  // Key: "username:tag1+tag2", Value: { timestamp, exists: true }
+  const topicCreationCache = new Map();
+  const CACHE_DURATION_MS = 5000; // 5 seconds
+
+  // Parse URL patterns from settings
+  const parseUrlPatterns = () => {
+    if (!settings.url_patterns) {
+      log("No url_patterns configured");
+      return [];
+    }
+
+    const patterns = settings.url_patterns
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith("#"))
+      .map(line => {
+        const parts = line.split("|").map(p => p.trim());
+        if (parts.length !== 4) {
+          log("Invalid pattern (expected 4 parts):", line);
+          return null;
+        }
+        
+        const [urlPattern, templateId, mode, timing] = parts;
+        
+        // Validate mode
+        if (!["always", "ifNoTopics", "ifUserHasNoTopic"].includes(mode)) {
+          log("Invalid mode (expected always/ifNoTopics/ifUserHasNoTopic):", mode);
+          return null;
+        }
+        
+        // Validate timing
+        if (!["first", "replies", "both"].includes(timing)) {
+          log("Invalid timing (expected first/replies/both):", timing);
+          return null;
+        }
+        
+        return { urlPattern, templateId, mode, timing };
+      })
+      .filter(Boolean);
+
+    log("Parsed patterns:", patterns);
+    return patterns;
+  };
+
+  // Find matching pattern for current URL
+  const findMatchingPattern = () => {
+    const currentUrl = window.location.pathname + window.location.search;
+    const patterns = parseUrlPatterns();
+    
+    for (const pattern of patterns) {
+      if (currentUrl.includes(pattern.urlPattern)) {
+        log("Matched pattern:", pattern, "for URL:", currentUrl);
+        return pattern;
+      }
+    }
+    
+    log("No pattern match for URL:", currentUrl);
+    return null;
+  };
 
   // Extract tags from current URL
   const getTagsFromUrl = () => {
@@ -48,30 +109,37 @@ export default apiInitializer("1.8.0", (api) => {
   };
 
   // Check if a topic exists with the current tags
-  const checkTopicExists = async (tags) => {
+  const checkTopicExists = async (tags, mode) => {
     if (!tags || tags.length === 0) {
       log("No tags found, skipping topic check");
       return true; // Assume topic exists if no tags
     }
 
-    try {
-      const currentUser = api.getCurrentUser();
-      if (!currentUser) {
-        log("No current user, skipping topic check");
-        return true; // Don't auto-open if user not logged in
-      }
+    const currentUser = api.getCurrentUser();
+    if (!currentUser) {
+      log("No current user, skipping topic check");
+      return true; // Don't auto-open if user not logged in
+    }
 
-      const checkUserOnly = settings.auto_open_check_user_only;
-      const tagsQuery = tags.join("+");
+    // Check cache first
+    const tagsKey = tags.join("+");
+    const cacheKey = mode === "ifUserHasNoTopic" 
+      ? `${currentUser.username}:${tagsKey}`
+      : `any:${tagsKey}`;
+    
+    const cached = topicCreationCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+      log(`Using cached result for ${cacheKey}:`, cached.exists);
+      return cached.exists;
+    }
+
+    try {
+      // Build search query based on mode
+      const searchQuery = mode === "ifUserHasNoTopic"
+        ? `tags:${tagsKey} @${currentUser.username}`
+        : `tags:${tagsKey}`;
       
-      // Build search query based on setting
-      // If checkUserOnly is true: search ONLY for topics by THIS user
-      // If checkUserOnly is false: search for topics by ANY user (all topics)
-      const searchQuery = checkUserOnly 
-        ? `tags:${tagsQuery} @${currentUser.username}`
-        : `tags:${tagsQuery}`;
-      
-      log(`🔍 Search query (checkUserOnly=${checkUserOnly}): ${searchQuery}`);
+      log(`🔍 Search query (mode=${mode}): ${searchQuery}`);
       
       const response = await ajax(`/search.json`, {
         data: {
@@ -81,14 +149,22 @@ export default apiInitializer("1.8.0", (api) => {
       });
 
       const topicExists = response?.topics && response.topics.length > 0;
+      
+      // Cache result
+      topicCreationCache.set(cacheKey, {
+        timestamp: Date.now(),
+        exists: topicExists
+      });
+      
       log("Topic check result:", { 
         tags, 
-        checkUserOnly,
+        mode,
         username: currentUser.username,
         searchQuery,
         topicExists, 
         count: response?.topics?.length || 0 
       });
+      
       return topicExists;
     } catch (error) {
       log("Error checking for topics:", error);
@@ -111,11 +187,35 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Checking if we should auto-open composer for Docuss link with template:", templateId);
 
-    const tags = getTagsFromUrl();
-    const topicExists = await checkTopicExists(tags);
+    // Find matching pattern
+    const pattern = findMatchingPattern();
+    if (!pattern) {
+      log("No URL pattern match, skipping auto-open");
+      return;
+    }
 
-    if (!topicExists) {
-      log("No topic found, auto-opening composer");
+    // Verify templateId matches pattern
+    if (pattern.templateId !== templateId) {
+      log(`Template mismatch: pattern wants ${pattern.templateId}, session has ${templateId}`);
+      return;
+    }
+
+    const tags = getTagsFromUrl();
+    
+    // Check mode to determine if we should open
+    let shouldOpen = false;
+    
+    if (pattern.mode === "always") {
+      shouldOpen = true;
+      log("Mode is 'always', will open composer");
+    } else {
+      const topicExists = await checkTopicExists(tags, pattern.mode);
+      shouldOpen = !topicExists;
+      log(`Mode is '${pattern.mode}', topicExists=${topicExists}, shouldOpen=${shouldOpen}`);
+    }
+
+    if (shouldOpen) {
+      log("Opening composer based on pattern:", pattern);
 
       schedule("afterRender", () => {
         // Poll for composer and site readiness instead of fixed delay
@@ -185,14 +285,55 @@ export default apiInitializer("1.8.0", (api) => {
             });
 
             log("Composer opened successfully with category:", categoryId);
+            
+            // Start draft resurrection watcher
+            startDraftWatcher(composer);
           } catch (error) {
             log("Error opening composer:", error);
           }
         });
       });
     } else {
-      log("Topic already exists, not auto-opening composer");
+      log("Conditions not met, not auto-opening composer");
     }
+  };
+
+  // Watch for draft resurrection and kill it
+  let draftWatchInterval = null;
+  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
+  
+  const startDraftWatcher = (composer) => {
+    if (draftWatchInterval) {
+      clearInterval(draftWatchInterval);
+    }
+    
+    log("Starting draft resurrection watcher");
+    
+    draftWatchInterval = setInterval(() => {
+      const model = composer.get("model");
+      
+      // If composer closed or draft manually saved, stop watching
+      if (!model || !model.draftKey) {
+        log("Draft cleared or composer closed, stopping watcher");
+        clearInterval(draftWatchInterval);
+        draftWatchInterval = null;
+        return;
+      }
+      
+      // Check if template was applied (meaning we want to block saves)
+      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+      if (!templateApplied) {
+        // Template hasn't been applied yet, keep watching
+        return;
+      }
+      
+      // If draft is trying to resurrect, kill it
+      const draftKey = model.draftKey;
+      if (draftKey && draftKey !== "new_topic") {
+        log("Draft resurrection detected, clearing draftKey:", draftKey);
+        model.set("draftKey", null);
+      }
+    }, 50); // Check every 50ms
   };
 
   // Run auto-open check on page changes
