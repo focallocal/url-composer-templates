@@ -20,6 +20,8 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
+  const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
+  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
   
   // Topic creation cache - prevents duplicate opens when search index lags
   // Key: "username:tag1+tag2" or "any:tag1+tag2", Value: { timestamp, exists: true }
@@ -275,7 +277,6 @@ export default apiInitializer("1.8.0", (api) => {
 
   // Watch for draft resurrection and kill it
   let draftWatchInterval = null;
-  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
   
   const startDraftWatcher = (composer) => {
     if (draftWatchInterval) {
