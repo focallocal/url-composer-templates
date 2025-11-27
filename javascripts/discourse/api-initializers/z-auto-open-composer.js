@@ -118,6 +118,12 @@ export default apiInitializer("1.8.0", (api) => {
         timestamp: Date.now(),
         exists: topicExists
       });
+
+      // If user has posted in ifUserHasNoTopic mode, store permanently
+      if (topicExists && mode === "ifUserHasNoTopic") {
+        sessionStorage.setItem(STORAGE_KEY_USER_POSTED, tagsKey);
+        log(`Stored permanent flag: user has posted to ${tagsKey}`);
+      }
       
       log("Topic check result:", { 
         tags, 
@@ -155,6 +161,18 @@ export default apiInitializer("1.8.0", (api) => {
     if (!template) {
       log("Template not found or not enabled:", templateId);
       return;
+    }
+
+    // Check if user has already posted (persistent flag for ifUserHasNoTopic)
+    if (template.mode === "ifUserHasNoTopic") {
+      const tags = getTagsFromUrl();
+      const tagsKey = tags.join("+");
+      const userPosted = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+      
+      if (userPosted === tagsKey) {
+        log("User has already posted to these tags, not opening composer");
+        return;
+      }
     }
 
     // Check if URL matches (if url_match is configured)
@@ -300,7 +318,11 @@ export default apiInitializer("1.8.0", (api) => {
       return;
     }
 
-    sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
+    // Only clear auto-open flag if user hasn't posted yet
+    const userPosted = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+    if (!userPosted) {
+      sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
+    }
 
     schedule("afterRender", () => {
       setTimeout(() => {

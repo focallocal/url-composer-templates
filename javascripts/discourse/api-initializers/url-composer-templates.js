@@ -46,6 +46,7 @@ export default apiInitializer("1.8.0", (api) => {
           text: settings[`template_${i}_text`],
           useFor: settings[`template_${i}_use_for`],
           autoOpen: settings[`template_${i}_auto_open`],
+          urlMatch: (settings[`template_${i}_url_match`] || "").trim(),
         });
       }
     }
@@ -54,16 +55,27 @@ export default apiInitializer("1.8.0", (api) => {
 
   // Extract composer_template parameter from URL
   const getTemplateIdFromUrl = () => {
+    const paramKey = (settings.template_param_key || "").trim();
+    if (!paramKey) {
+      return null;
+    }
     const params = new URLSearchParams(window.location.search);
-    return params.get("composer_template");
+    return params.get(paramKey);
+  };
+
+  const getTemplateIdFromPath = () => {
+    const templates = getEnabledTemplates();
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const match = templates.find((template) => template.urlMatch && currentUrl.includes(template.urlMatch));
+    return match ? match.id : null;
   };
 
   // Store template ID in sessionStorage when URL parameter is detected
   const storeTemplateIdFromUrl = () => {
-    const templateId = getTemplateIdFromUrl();
+    const templateId = getTemplateIdFromUrl() || getTemplateIdFromPath();
     if (templateId) {
       sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
-      log("Stored template ID from URL:", templateId);
+      log("Stored template ID from URL or path:", templateId);
       return templateId;
     }
     return sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
@@ -96,9 +108,9 @@ export default apiInitializer("1.8.0", (api) => {
     const currentContent = composerModel.get("reply") || "";
     const currentTitle = composerModel.get("title") || "";
     
-    // Check if there's existing content (including draft content)
-    if (currentContent.trim().length > 0 || currentTitle.trim().length > 0) {
-      log("Composer already has content or title, skipping template");
+    // Check if there's existing content (allow title from Docuss/elsewhere)
+    if (currentContent.trim().length > 0) {
+      log("Composer already has content, skipping template");
       // Clear the template ID to prevent re-application
       sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
       return;
