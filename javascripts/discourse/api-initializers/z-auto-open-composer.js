@@ -18,6 +18,7 @@ export default apiInitializer("1.8.0", (api) => {
   log("Initializing auto-open logic");
 
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
+  const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
@@ -67,7 +68,15 @@ export default apiInitializer("1.8.0", (api) => {
   // Auto-open composer if conditions are met
   const autoOpenComposerIfNeeded = () => {
     const params = new URLSearchParams(window.location.search);
-    const templateId = params.get(settings.template_param_key);
+    
+    // First check sessionStorage (set by url-composer-templates.js or postMessage)
+    let templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+    
+    // Fall back to URL parameter if not in sessionStorage
+    if (!templateId) {
+      templateId = params.get(settings.template_param_key);
+    }
+    
     const hasTopics = params.get("has_topics") === "true";
     
     // Check if we've already checked this page load to prevent loops

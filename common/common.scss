@@ -2,13 +2,19 @@
 
 /* Fix for unclickable composer controls in Docuss */
 .composer-controls {
-  z-index: 99999 !important;
+  z-index: 1101 !important;
   pointer-events: auto !important;
 }
 
-/* Ensure composer is above other elements */
+/* Ensure composer is above Docuss iframe but below modals */
 #reply-control {
-  z-index: 99998 !important;
+  z-index: 1100 !important;
+}
+
+/* Ensure modals appear above composer */
+.modal-backdrop,
+.modal {
+  z-index: 1500 !important;
 }
 
 /* Optional: Add visual indicator when template is active */
