@@ -304,6 +304,20 @@ export default apiInitializer("1.8.0", (api) => {
       const templateId = storeTemplateIdFromUrl();
       if (templateId) {
         log("Page changed with template ID:", templateId);
+      } else {
+        // If we navigated away from a template context (e.g. Docuss), close the composer
+        // This fixes the issue where the composer stays open when leaving Docuss
+        if (!url.includes("/tags/intersection/")) {
+          const composerController = api.container.lookup("controller:composer");
+          if (composerController && composerController.get("model")) {
+            const model = composerController.get("model");
+            // Only auto-close new topic drafts to avoid losing user work on replies
+            if (model.draftKey === "new_topic") {
+              log("Navigated away from Docuss context, closing composer");
+              composerController.close();
+            }
+          }
+        }
       }
     }, 100);
   });
