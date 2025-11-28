@@ -162,7 +162,11 @@ export default apiInitializer("1.8.0", (api) => {
     
     // Delete any existing draft first to prevent conflicts
     const draftKey = composerModel.get("draftKey");
-    const deleteDraftPromise = draftKey
+    
+    // Only delete if it's a persisted draft (not new_topic) to avoid "edited in another window" errors
+    const shouldDelete = draftKey && draftKey !== "new_topic";
+    
+    const deleteDraftPromise = shouldDelete
       ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
           .then(() => {
             log("Existing draft deleted");
@@ -230,7 +234,12 @@ export default apiInitializer("1.8.0", (api) => {
 
         // Check if we should close the composer because the user already posted
         if (template.mode === "ifUserHasNoTopic") {
-          const tags = getTagsFromUrl();
+          // Try to get tags from model first, then URL
+          let tags = model.get("tags") || [];
+          if (!tags || tags.length === 0) {
+             tags = getTagsFromUrl();
+          }
+          
           const tagsKey = tags.join("+");
           const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
           let hasPosted = false;
