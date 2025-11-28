@@ -18,6 +18,29 @@ export default apiInitializer("1.8.0", (api) => {
   // Storage keys
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
+  const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
+
+  // Helper to get tags from URL (duplicated from z-auto-open-composer.js)
+  const getTagsFromUrl = () => {
+    const path = window.location.pathname;
+    // Match tag intersection routes: /tags/intersection/tag1/tag2
+    const tagIntersectionMatch = path.match(/\/tags\/intersection\/(.+)/);
+    if (tagIntersectionMatch) {
+      return tagIntersectionMatch[1].split("/").map(decodeURIComponent);
+    }
+    // Match single tag routes: /tag/tagname
+    const singleTagMatch = path.match(/\/tag\/([^/]+)/);
+    if (singleTagMatch) {
+      return [decodeURIComponent(singleTagMatch[1])];
+    }
+    // Match tags query parameter
+    const params = new URLSearchParams(window.location.search);
+    const tagsParam = params.get("tags");
+    if (tagsParam) {
+      return tagsParam.split(",").map((t) => t.trim());
+    }
+    return [];
+  };
 
   // Listen for composer template from iframe via postMessage
   window.addEventListener('message', (event) => {
@@ -45,6 +68,7 @@ export default apiInitializer("1.8.0", (api) => {
           title: settings[`template_${i}_title`],
           text: settings[`template_${i}_text`],
           useFor: settings[`template_${i}_use_for`],
+          mode: settings[`template_${i}_mode`] || "ifUserHasNoTopic",
           autoOpen: settings[`template_${i}_auto_open`],
           urlMatch: (settings[`template_${i}_url_match`] || "").trim(),
         });
@@ -202,6 +226,32 @@ export default apiInitializer("1.8.0", (api) => {
         if (!model) {
           log("No composer model found");
           return;
+        }
+
+        // Check if we should close the composer because the user already posted
+        if (template.mode === "ifUserHasNoTopic") {
+          const tags = getTagsFromUrl();
+          const tagsKey = tags.join("+");
+          const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+          let hasPosted = false;
+          
+          if (userPostedJson) {
+            try {
+              const postedTags = JSON.parse(userPostedJson);
+              if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
+                hasPosted = true;
+              }
+            } catch (e) {
+              if (userPostedJson === tagsKey) hasPosted = true;
+            }
+          }
+
+          if (hasPosted) {
+            log("⛔ User has already posted to these tags, closing composer!");
+            composerController.close();
+            sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
+            return;
+          }
         }
 
         const isCreatingTopic = model.get("creatingTopic");
