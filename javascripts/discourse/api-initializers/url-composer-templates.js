@@ -122,53 +122,13 @@ export default apiInitializer("1.8.0", (api) => {
       log("Cancelled pending draft save debounce");
     }
 
-    // Temporarily disable auto-save to prevent 409 draft conflicts
-    const originalSaveDraft = composerModel.saveDraft;
-    let saveBlocked = true;
-    composerModel.saveDraft = function() {
-      if (saveBlocked) {
-        log("Draft save blocked during template application");
-        return Promise.resolve();
-      }
-      return originalSaveDraft.apply(composerModel, arguments);
-    };
-    
-    // Delete any existing draft first to prevent conflicts
-    const draftKey = composerModel.get("draftKey");
-    
-    // Only delete if it's a persisted draft (not new_topic) to avoid "edited in another window" errors
-    const shouldDelete = draftKey && draftKey !== "new_topic";
-    
-    const deleteDraftPromise = shouldDelete
-      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
-          .then(() => {
-            log("Existing draft deleted");
-          })
-          .catch((e) => {
-            if (e.jqXHR?.status !== 404) {
-              log("Draft deletion warning:", e);
-            }
-          })
-      : Promise.resolve();
-    
-    // Set template values
+    // Set template values immediately - no need to delete new_topic draft
     composerModel.set("reply", template.text);
     
     if (template.title && composerModel.get("creatingTopic")) {
       composerModel.set("title", template.title);
       log("Applied title:", template.title);
     }
-
-    // Re-enable draft saving after deletion completes
-    deleteDraftPromise.finally(() => {
-      // Add delay before re-enabling to prevent race conditions with Discourse's auto-save
-      setTimeout(() => {
-        schedule("afterRender", () => {
-          saveBlocked = false;
-          log("Draft saving re-enabled after delay");
-        });
-      }, 500);
-    });
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
