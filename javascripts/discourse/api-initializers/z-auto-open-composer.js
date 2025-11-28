@@ -169,11 +169,22 @@ export default apiInitializer("1.8.0", (api) => {
     if (template.mode === "ifUserHasNoTopic") {
       const tags = getTagsFromUrl();
       const tagsKey = tags.join("+");
-      const userPosted = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+      const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
       
-      if (userPosted === tagsKey) {
-        log("User has already posted to these tags, not opening composer");
-        return;
+      if (userPostedJson) {
+        try {
+          const postedTags = JSON.parse(userPostedJson);
+          if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
+            log("User has already posted to these tags (found in session cache), not opening composer");
+            return;
+          }
+        } catch (e) {
+          // Fallback for legacy string format
+          if (userPostedJson === tagsKey) {
+            log("User has already posted to these tags (legacy cache), not opening composer");
+            return;
+          }
+        }
       }
     }
 
@@ -276,17 +287,56 @@ export default apiInitializer("1.8.0", (api) => {
   };
 
   // Listen for successful posts to update cache immediately
-  api.onAppEvent("composer:posted", () => {
-    log("📝 Composer posted event received");
+  api.onAppEvent("composer:posted", (data, type, post) => {
+    log("📝 Composer posted event received", { data, type, post });
     
-    // If we are on a tag page, assume the user just posted to these tags
-    const tags = getTagsFromUrl();
-    if (tags.length > 0) {
+    // Try to get tags from the post object or composer model first
+    let tags = [];
+    
+    // 1. Try to get tags from the post object passed by event
+    if (post && post.tags) {
+      tags = post.tags;
+      log("Got tags from post object:", tags);
+    } 
+    // 2. Try to get tags from the composer controller model
+    else {
+      const composer = api.container.lookup("controller:composer");
+      const model = composer?.get("model");
+      if (model && model.tags) {
+        tags = model.tags;
+        log("Got tags from composer model:", tags);
+      }
+      // 3. Fallback to URL tags
+      else {
+        tags = getTagsFromUrl();
+        log("Fallback to URL tags:", tags);
+      }
+    }
+
+    if (tags && tags.length > 0) {
       const tagsKey = tags.join("+");
       
-      // 1. Set persistent session flag
-      sessionStorage.setItem(STORAGE_KEY_USER_POSTED, tagsKey);
-      log(`✅ Optimistically marked user as having posted to: ${tagsKey}`);
+      // 1. Set persistent session flag (append to array)
+      let postedTags = [];
+      const existingJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+      if (existingJson) {
+        try {
+          const parsed = JSON.parse(existingJson);
+          if (Array.isArray(parsed)) {
+            postedTags = parsed;
+          } else {
+            postedTags = [existingJson]; // Convert legacy string to array
+          }
+        } catch (e) {
+          postedTags = [existingJson];
+        }
+      }
+      
+      if (!postedTags.includes(tagsKey)) {
+        postedTags.push(tagsKey);
+        sessionStorage.setItem(STORAGE_KEY_USER_POSTED, JSON.stringify(postedTags));
+        log(`✅ Optimistically marked user as having posted to: ${tagsKey}`);
+      }
       
       // 2. Update memory cache
       const currentUser = api.getCurrentUser();
@@ -350,8 +400,24 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     // Only clear auto-open flag if user hasn't posted yet
-    const userPosted = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
-    if (!userPosted) {
+    // We need to check if the current tags are in the posted list
+    const tags = getTagsFromUrl();
+    const tagsKey = tags.join("+");
+    const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
+    let hasPosted = false;
+    
+    if (userPostedJson) {
+      try {
+        const postedTags = JSON.parse(userPostedJson);
+        if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
+          hasPosted = true;
+        }
+      } catch (e) {
+        if (userPostedJson === tagsKey) hasPosted = true;
+      }
+    }
+
+    if (!hasPosted) {
       sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
     }
 
