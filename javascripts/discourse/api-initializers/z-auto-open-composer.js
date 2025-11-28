@@ -186,12 +186,16 @@ export default apiInitializer("1.8.0", (api) => {
       
       log("Checking if user has posted to tags:", tags);
       
-      // Search for topics by current user with these tags
-      const searchQuery = tags.map(t => `#${t}`).join(' ') + ` @${currentUser.username}`;
+      // Search for topics by current user with these tags using Discourse search syntax
+      const tagsKey = tags.join("+");
+      const searchQuery = `tags:${tagsKey} @${currentUser.username}`;
+      
+      log("🔍 Search query:", searchQuery);
       
       ajax('/search.json', {
         data: { 
           q: searchQuery,
+          type: "topic",
           page: 1
         }
       }).then((results) => {
