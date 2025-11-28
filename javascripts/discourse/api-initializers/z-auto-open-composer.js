@@ -1,5 +1,6 @@
 import { apiInitializer } from "discourse/lib/api";
 import { schedule } from "@ember/runloop";
+import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
   console.log(" AUTO-OPEN COMPOSER LOADED - VERSION 3.0.0 (SIMPLE MODE) ");
@@ -164,102 +165,145 @@ export default apiInitializer("1.8.0", (api) => {
         log("Mode is 'ifNoTopics' and has_topics!=true. No topics (or unknown). Opening.");
       }
     } else if (template.mode === "ifUserHasNoTopic") {
-      // Check if the current user has already posted to this trigger
-      const triggerId = sessionStorage.getItem('url_composer_trigger_id');
-      const userPostedJson = sessionStorage.getItem('url_composer_user_posted');
+      // Check if the current user has already posted to these tags via Discourse API
+      const tags = getTagsFromUrl();
+      const currentUser = api.getCurrentUser();
       
-      let userHasPosted = false;
-      if (userPostedJson && triggerId) {
-        try {
-          const postedTriggers = JSON.parse(userPostedJson);
-          if (Array.isArray(postedTriggers) && postedTriggers.includes(triggerId)) {
-            userHasPosted = true;
-          }
-        } catch (e) {
-          // Legacy format check
-          if (userPostedJson === triggerId) {
-            userHasPosted = true;
-          }
-        }
-      }
-      
-      if (userHasPosted) {
-        shouldOpen = false;
-        log("Mode is 'ifUserHasNoTopic' and user has already posted. NOT opening.");
-      } else {
+      if (!currentUser || tags.length === 0) {
         shouldOpen = true;
-        log("Mode is 'ifUserHasNoTopic' and user hasn't posted yet. Opening.");
+        log("Mode is 'ifUserHasNoTopic' but no user/tags found. Opening by default.");
+      } else {
+        // Need to make async API call - this will be handled below
+        shouldOpen = "checkApi";
+        log("Mode is 'ifUserHasNoTopic', will check API for user posts with tags:", tags);
       }
     }
 
-    if (shouldOpen) {
-      log("Opening composer for template:", template);
-
-      schedule("afterRender", () => {
-        // Poll for composer and site readiness
-        const waitForReady = (callback, maxAttempts = 20) => {
-          let attempts = 0;
-          const check = () => {
-            const composer = api.container.lookup("controller:composer");
-            const site = api.container.lookup("service:site");
-            const currentUser = api.getCurrentUser();
-            
-            if (composer && site && site.categories && currentUser) {
-              callback();
-            } else if (attempts++ < maxAttempts) {
-              setTimeout(check, 50);
-            } else {
-              log("Timeout waiting for composer readiness");
-            }
-          };
-          check();
-        };
-
-        waitForReady(() => {
-          try {
-            const composer = api.container.lookup("controller:composer");
-            const site = api.container.lookup("service:site");
-            const tags = getTagsFromUrl();
-
-            // CATEGORY AUTO-SELECTION
-            let categoryId = null;
-            const categoryParam = params.get("category");
-
-            if (categoryParam) {
-              const category = site.categories.find(
-                (c) => c.slug === categoryParam || c.id === parseInt(categoryParam)
-              );
-              if (category) {
-                categoryId = category.id;
-              }
-            } else {
-              const hiddenCategory = site.categories.find(
-                (c) => c && c.name && c.name.toLowerCase() === "hidden"
-              );
-              if (hiddenCategory) {
-                categoryId = hiddenCategory.id;
-              }
-            }
-
-            // Open composer
-            composer.open({
-              action: "createTopic",
-              draftKey: "new_topic",
-              categoryId: categoryId,
-              tags: tags.length > 0 ? tags : null,
-            });
-
-            log("Composer opened successfully");
-            
-            // Start draft resurrection watcher
-            startDraftWatcher(composer);
-            
-          } catch (error) {
-            log("Error opening composer:", error);
-          }
-        });
+    // Handle API check for ifUserHasNoTopic mode
+    if (shouldOpen === "checkApi") {
+      const tags = getTagsFromUrl();
+      const currentUser = api.getCurrentUser();
+      
+      log("Checking if user has posted to tags:", tags);
+      
+      // Search for topics by current user with these tags
+      const searchQuery = tags.map(t => `#${t}`).join(' ') + ` @${currentUser.username}`;
+      
+      ajax('/search.json', {
+        data: { 
+          q: searchQuery,
+          page: 1
+        }
+      }).then((results) => {
+        const hasPosted = results.topics && results.topics.length > 0;
+        
+        if (hasPosted) {
+          log("User has already posted to these tags. NOT opening composer.");
+        } else {
+          log("User has NOT posted to these tags. Opening composer.");
+          openComposerNow(template, params);
+        }
+      }).catch((error) => {
+        log("API check failed, opening composer by default:", error);
+        openComposerNow(template, params);
       });
+    } else if (shouldOpen) {
+      openComposerNow(template, params);
     }
+  };
+  
+  // Helper function to open composer (extracted to avoid duplication)
+  const openComposerNow = (template, params) => {
+    log("Opening composer for template:", template);
+
+    schedule("afterRender", () => {
+      // Poll for composer and site readiness
+      const waitForReady = (callback, maxAttempts = 20) => {
+        let attempts = 0;
+        const check = () => {
+          const composer = api.container.lookup("controller:composer");
+          const site = api.container.lookup("service:site");
+          const currentUser = api.getCurrentUser();
+          
+          if (composer && site && site.categories && currentUser) {
+            callback();
+          } else if (attempts++ < maxAttempts) {
+            setTimeout(check, 50);
+          } else {
+            log("Timeout waiting for composer readiness");
+          }
+        };
+        check();
+      };
+
+      waitForReady(() => {
+        try {
+          const composer = api.container.lookup("controller:composer");
+          const site = api.container.lookup("service:site");
+          const tags = getTagsFromUrl();
+
+          // CATEGORY AUTO-SELECTION
+          let categoryId = null;
+          const categoryParam = params.get("category");
+
+          if (categoryParam) {
+            const category = site.categories.find(
+              (c) => c.slug === categoryParam || c.id === parseInt(categoryParam)
+            );
+            if (category) {
+              categoryId = category.id;
+            }
+          } else {
+            const hiddenCategory = site.categories.find(
+              (c) => c && c.name && c.name.toLowerCase() === "hidden"
+            );
+            if (hiddenCategory) {
+              categoryId = hiddenCategory.id;
+            }
+          }
+
+          // Open composer
+          composer.open({
+            action: "createTopic",
+            draftKey: "new_topic",
+            categoryId: categoryId,
+            tags: tags.length > 0 ? tags : null,
+          });
+
+          log("Composer opened successfully");
+          
+          // Override saveDraft to prevent dialog during template application
+          schedule("afterRender", () => {
+            const model = composer.get("model");
+            if (model) {
+              const originalSaveDraft = model.saveDraft;
+              let saveBlocked = true;
+              
+              model.saveDraft = function() {
+                if (saveBlocked) {
+                  log("Draft save blocked during auto-open");
+                  return Promise.resolve();
+                }
+                return originalSaveDraft.apply(model, arguments);
+              };
+              
+              // Re-enable after template is applied
+              setTimeout(() => {
+                saveBlocked = false;
+                log("Draft saving re-enabled after auto-open");
+              }, 1000);
+            }
+          });
+          
+          // Start draft resurrection watcher
+          startDraftWatcher(composer);
+          
+        } catch (error) {
+          log("Error opening composer:", error);
+        }
+      });
+    });
+  };
   };
 
   // Run auto-open check on page changes
@@ -278,36 +322,5 @@ export default apiInitializer("1.8.0", (api) => {
     setTimeout(() => {
       autoOpenComposerIfNeeded();
     }, 1000);
-  });
-  
-  // Listen for successful posts to update user_posted cache
-  api.onAppEvent("composer:posted", () => {
-    const triggerId = sessionStorage.getItem('url_composer_trigger_id');
-    if (!triggerId) return;
-    
-    log("📝 User posted, marking trigger as posted:", triggerId);
-    
-    // Get existing posted triggers
-    let postedTriggers = [];
-    const existingJson = sessionStorage.getItem('url_composer_user_posted');
-    if (existingJson) {
-      try {
-        const parsed = JSON.parse(existingJson);
-        if (Array.isArray(parsed)) {
-          postedTriggers = parsed;
-        } else {
-          postedTriggers = [existingJson];
-        }
-      } catch (e) {
-        postedTriggers = [existingJson];
-      }
-    }
-    
-    // Add this trigger if not already there
-    if (!postedTriggers.includes(triggerId)) {
-      postedTriggers.push(triggerId);
-      sessionStorage.setItem('url_composer_user_posted', JSON.stringify(postedTriggers));
-      log("✅ Updated user posted triggers:", postedTriggers);
-    }
   });
 });

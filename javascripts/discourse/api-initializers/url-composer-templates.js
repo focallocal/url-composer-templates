@@ -152,8 +152,16 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Start draft watcher BEFORE applying template
-    startDraftWatcher(composerModel);
+    // Override saveDraft to block saves during template application
+    const originalSaveDraft = composerModel.saveDraft;
+    let saveBlocked = true;
+    composerModel.saveDraft = function() {
+      if (saveBlocked) {
+        log("Draft save blocked during template application");
+        return Promise.resolve();
+      }
+      return originalSaveDraft.apply(composerModel, arguments);
+    };
     
     // Cancel any pending draft saves to prevent 409 conflicts
     if (composerModel._saveDraftDebounce) {
@@ -161,14 +169,39 @@ export default apiInitializer("1.8.0", (api) => {
       composerModel._saveDraftDebounce = null;
       log("Cancelled pending draft save debounce");
     }
+    
+    // Delete any existing draft to prevent "discard" dialog
+    const draftKey = composerModel.get("draftKey");
+    const deleteDraftPromise = draftKey && draftKey !== "new_topic"
+      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
+          .then(() => log("Existing draft deleted"))
+          .catch((e) => {
+            if (e.jqXHR?.status !== 404) {
+              log("Draft deletion warning:", e);
+            }
+          })
+      : Promise.resolve();
 
-    // Set template values immediately - no need to delete new_topic draft
+    // Set template values immediately
     composerModel.set("reply", template.text);
     
     if (template.title && composerModel.get("creatingTopic")) {
       composerModel.set("title", template.title);
       log("Applied title:", template.title);
     }
+
+    // Start draft watcher
+    startDraftWatcher(composerModel);
+    
+    // Re-enable draft saving after deletion completes
+    deleteDraftPromise.finally(() => {
+      setTimeout(() => {
+        schedule("afterRender", () => {
+          saveBlocked = false;
+          log("Draft saving re-enabled after delay");
+        });
+      }, 500);
+    });
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
