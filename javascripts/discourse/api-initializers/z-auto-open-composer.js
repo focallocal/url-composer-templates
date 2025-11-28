@@ -22,16 +22,16 @@ export default apiInitializer("1.8.0", (api) => {
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
     for (let i = 1; i <= 6; i++) {
-      const id = settings[\	emplate_\_id\];
-      const enabled = settings[\	emplate_\_enabled\];
+      const id = settings[`template_${i}_id`];
+      const enabled = settings[`template_${i}_enabled`];
       
       if (enabled && id === templateId) {
         return {
           enabled: true,
-          id: settings[\	emplate_\_id\],
-          urlMatch: settings[\	emplate_\_url_match\],
-          mode: settings[\	emplate_\_mode\] || "ifNoTopics",
-          useFor: settings[\	emplate_\_use_for\] || "both"
+          id: settings[`template_${i}_id`],
+          urlMatch: settings[`template_${i}_url_match`],
+          mode: settings[`template_${i}_mode`] || "ifNoTopics",
+          useFor: settings[`template_${i}_use_for`] || "both"
         };
       }
     }

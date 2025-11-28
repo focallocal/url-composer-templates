@@ -36,15 +36,15 @@ export default apiInitializer("1.8.0", (api) => {
   const getEnabledTemplates = () => {
     const templates = [];
     for (let i = 1; i <= 6; i++) {
-      const enabled = settings[\	emplate_\_enabled\];
+      const enabled = settings[`template_${i}_enabled`];
       if (enabled) {
         templates.push({
-          id: settings[\	emplate_\_id\],
-          title: settings[\	emplate_\_title\],
-          text: settings[\	emplate_\_text\],
-          useFor: settings[\	emplate_\_use_for\],
-          mode: settings[\	emplate_\_mode\] || "ifNoTopics",
-          urlMatch: (settings[\	emplate_\_url_match\] || "").trim(),
+          id: settings[`template_${i}_id`],
+          title: settings[`template_${i}_title`],
+          text: settings[`template_${i}_text`],
+          useFor: settings[`template_${i}_use_for`],
+          mode: settings[`template_${i}_mode`] || "ifNoTopics",
+          urlMatch: (settings[`template_${i}_url_match`] || "").trim(),
         });
       }
     }
@@ -63,7 +63,7 @@ export default apiInitializer("1.8.0", (api) => {
 
   const getTemplateIdFromPath = () => {
     const templates = getEnabledTemplates();
-    const currentUrl = \\\\\;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     const match = templates.find((template) => template.urlMatch && currentUrl.includes(template.urlMatch));
     return match ? match.id : null;
   };
@@ -140,7 +140,7 @@ export default apiInitializer("1.8.0", (api) => {
     const shouldDelete = draftKey && draftKey !== "new_topic";
     
     const deleteDraftPromise = shouldDelete
-      ? ajax(\/drafts/\.json\, { type: "DELETE" })
+      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
           .then(() => {
             log("Existing draft deleted");
           })
