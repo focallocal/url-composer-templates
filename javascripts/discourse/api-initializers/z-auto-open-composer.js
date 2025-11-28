@@ -275,6 +275,36 @@ export default apiInitializer("1.8.0", (api) => {
     }
   };
 
+  // Listen for successful posts to update cache immediately
+  api.onAppEvent("composer:posted", () => {
+    log("📝 Composer posted event received");
+    
+    // If we are on a tag page, assume the user just posted to these tags
+    const tags = getTagsFromUrl();
+    if (tags.length > 0) {
+      const tagsKey = tags.join("+");
+      
+      // 1. Set persistent session flag
+      sessionStorage.setItem(STORAGE_KEY_USER_POSTED, tagsKey);
+      log(`✅ Optimistically marked user as having posted to: ${tagsKey}`);
+      
+      // 2. Update memory cache
+      const currentUser = api.getCurrentUser();
+      if (currentUser) {
+        // Update both specific user cache and general cache
+        const userCacheKey = `${currentUser.username}:${tagsKey}`;
+        const anyCacheKey = `any:${tagsKey}`;
+        
+        const cacheData = { timestamp: Date.now(), exists: true };
+        
+        topicCreationCache.set(userCacheKey, cacheData);
+        topicCreationCache.set(anyCacheKey, cacheData);
+        
+        log("✅ Updated topic creation cache");
+      }
+    }
+  });
+
   // Watch for draft resurrection and kill it
   let draftWatchInterval = null;
   

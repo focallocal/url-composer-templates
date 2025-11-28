@@ -1,5 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
-import { schedule } from "@ember/runloop";
+import { schedule, cancel } from "@ember/runloop";
 import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
@@ -118,6 +118,13 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
+    // Cancel any pending draft saves to prevent 409 conflicts
+    if (composerModel._saveDraftDebounce) {
+      cancel(composerModel._saveDraftDebounce);
+      composerModel._saveDraftDebounce = null;
+      log("Cancelled pending draft save debounce");
+    }
+
     // Temporarily disable auto-save to prevent 409 draft conflicts
     const originalSaveDraft = composerModel.saveDraft;
     let saveBlocked = true;
