@@ -182,17 +182,18 @@ export default apiInitializer("1.8.0", (api) => {
           })
       : Promise.resolve();
 
-    // Set template values immediately
-    composerModel.set("reply", template.text);
-    
-    if (template.title && composerModel.get("creatingTopic")) {
-      composerModel.set("title", template.title);
-      log("Applied title:", template.title);
-    }
-
-    // Re-enable draft saving after deletion completes
+    // Wait for draft deletion, then apply template
     deleteDraftPromise.finally(() => {
       schedule("afterRender", () => {
+        // Set template values after draft is deleted
+        composerModel.set("reply", template.text);
+        
+        if (template.title && composerModel.get("creatingTopic")) {
+          composerModel.set("title", template.title);
+          log("Applied title:", template.title);
+        }
+        
+        // Re-enable draft saving
         saveBlocked = false;
         log("Draft saving re-enabled - Discourse auto-save will handle next save");
       });

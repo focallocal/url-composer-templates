@@ -186,9 +186,9 @@ export default apiInitializer("1.8.0", (api) => {
       
       log("Checking if user has posted to tags:", tags);
       
-      // Search for topics created by current user with these tags
+      // Search for topics with these tags - Discourse search will only return topics visible to current user
       const tagsKey = tags.join("+");
-      const searchQuery = `tags:${tagsKey} in:created`;
+      const searchQuery = `tags:${tagsKey} @${currentUser.username}`;
       
       log("🔍 Search query:", searchQuery);
       
@@ -199,10 +199,16 @@ export default apiInitializer("1.8.0", (api) => {
           page: 1
         }
       }).then((results) => {
-        // Verify topics are actually created by current user
-        const hasPosted = results.topics && results.topics.some(topic => 
-          topic.created_by && topic.created_by.username === currentUser.username
-        );
+        log("Search results:", results);
+        
+        // Check if any topics were created by the current user
+        const hasPosted = results.topics && results.topics.some(topic => {
+          const isAuthor = topic.posters && topic.posters.some(poster => 
+            poster.user_id === currentUser.id && poster.description && poster.description.includes('Original Poster')
+          );
+          log(`Topic "${topic.title}" - isAuthor:`, isAuthor);
+          return isAuthor;
+        });
         
         if (hasPosted) {
           log("User has already posted to these tags. NOT opening composer.");
