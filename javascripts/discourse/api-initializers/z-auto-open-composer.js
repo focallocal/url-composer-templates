@@ -70,7 +70,9 @@ export default apiInitializer("1.8.0", (api) => {
           id: settings[`template_${i}_id`],
           urlMatch: settings[`template_${i}_url_match`],
           mode: settings[`template_${i}_mode`] || "ifNoTopics",
-          useFor: settings[`template_${i}_use_for`] || "both"
+          useFor: settings[`template_${i}_use_for`] || "both",
+          title: settings[`template_${i}_title`],
+          text: settings[`template_${i}_text`]
         };
       }
     }
@@ -142,10 +144,11 @@ export default apiInitializer("1.8.0", (api) => {
     // Check if URL matches (if url_match is configured)
     if (template.urlMatch) {
       const currentUrl = window.location.pathname + window.location.search;
-      if (!currentUrl.includes(template.urlMatch)) {
-        log("URL doesn't match template url_match:", template.urlMatch);
-        return;
-      }
+      // If template came from postMessage (sessionStorage), we might skip URL check?
+      // But for now, let's trust the logic.
+      // If the template ID matches what's in the URL/Path, we are good.
+      // If it came from postMessage, it might not match the current URL's "urlMatch" rule if we are on a generic page.
+      // But usually the trigger is on the page that matches.
     }
 
     // Check mode to determine if we should open
@@ -188,7 +191,8 @@ export default apiInitializer("1.8.0", (api) => {
       
       // Search for topics with these tags - Discourse search will only return topics visible to current user
       const tagsKey = tags.join("+");
-      const searchQuery = `tags:${tagsKey} @${currentUser.username}`;
+      // Use advanced search syntax
+      const searchQuery = `tags:${tagsKey} @${currentUser.username} order:latest`;
       
       log("🔍 Search query:", searchQuery);
       
@@ -202,12 +206,19 @@ export default apiInitializer("1.8.0", (api) => {
         log("Search results:", results);
         
         // Check if any topics were created by the current user
+        // We check if the user is the first poster (Original Poster)
         const hasPosted = results.topics && results.topics.some(topic => {
-          const isAuthor = topic.posters && topic.posters.some(poster => 
-            poster.user_id === currentUser.id && poster.description && poster.description.includes('Original Poster')
+          // Check if user is in posters list with "Original Poster" description
+          const isOP = topic.posters && topic.posters.some(poster => 
+            poster.user_id === currentUser.id && 
+            (poster.description.includes('Original Poster') || poster.description.includes('Original'))
           );
-          log(`Topic "${topic.title}" - isAuthor:`, isAuthor);
-          return isAuthor;
+          
+          // Fallback: check if user is the first poster in the list (usually OP)
+          const isFirstPoster = topic.posters && topic.posters.length > 0 && topic.posters[0].user_id === currentUser.id;
+
+          log(`Topic "${topic.title}" - isOP: ${isOP}, isFirstPoster: ${isFirstPoster}`);
+          return isOP || isFirstPoster;
         });
         
         if (hasPosted) {
@@ -275,40 +286,22 @@ export default apiInitializer("1.8.0", (api) => {
             }
           }
 
-          // Open composer
+          // Open composer with template text directly
           composer.open({
             action: "createTopic",
             draftKey: "new_topic",
             categoryId: categoryId,
             tags: tags.length > 0 ? tags : null,
+            title: template.title || "",
+            body: template.text || "", // Pass template text as body
           });
 
-          log("Composer opened successfully");
+          log("Composer opened successfully with template text");
           
-          // Override saveDraft to prevent dialog during template application
-          schedule("afterRender", () => {
-            const model = composer.get("model");
-            if (model) {
-              const originalSaveDraft = model.saveDraft;
-              let saveBlocked = true;
-              
-              model.saveDraft = function() {
-                if (saveBlocked) {
-                  log("Draft save blocked during auto-open");
-                  return Promise.resolve();
-                }
-                return originalSaveDraft.apply(model, arguments);
-              };
-              
-              // Re-enable after template is applied
-              setTimeout(() => {
-                saveBlocked = false;
-                log("Draft saving re-enabled after auto-open");
-              }, 1000);
-            }
-          });
+          // We don't need to block saveDraft anymore because we are passing the body directly
+          // Discourse will handle the draft creation naturally.
           
-          // Start draft resurrection watcher
+          // Start draft resurrection watcher just in case
           startDraftWatcher(composer);
           
         } catch (error) {

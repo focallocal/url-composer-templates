@@ -19,6 +19,7 @@ export default apiInitializer("1.8.0", (api) => {
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
   const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
+  const STORAGE_KEY_MESSAGE_TS = "url_composer_message_ts";
   
   // Draft resurrection watcher (shared with z-auto-open-composer.js)
   let draftWatchInterval = null;
@@ -62,6 +63,8 @@ export default apiInitializer("1.8.0", (api) => {
         sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
         sessionStorage.setItem('url_composer_has_topics', hasTopics ? 'true' : 'false');
         sessionStorage.setItem('url_composer_trigger_id', triggerId || '');
+        sessionStorage.setItem(STORAGE_KEY_MESSAGE_TS, Date.now().toString());
+        
         // Clear applied flag to allow new template application
         sessionStorage.removeItem(STORAGE_KEY_APPLIED);
         log("📨 Stored template ID from postMessage:", templateId, "hasTopics:", hasTopics, "triggerId:", triggerId);
@@ -107,6 +110,13 @@ export default apiInitializer("1.8.0", (api) => {
 
   // Store template ID in sessionStorage when URL parameter is detected
   const storeTemplateIdFromUrl = () => {
+    // Check if we recently received a postMessage (within 2 seconds)
+    const messageTs = parseInt(sessionStorage.getItem(STORAGE_KEY_MESSAGE_TS) || "0");
+    if (Date.now() - messageTs < 2000) {
+      log("Skipping URL template check - postMessage received recently");
+      return sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+    }
+
     const templateId = getTemplateIdFromUrl() || getTemplateIdFromPath();
     if (templateId) {
       sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
