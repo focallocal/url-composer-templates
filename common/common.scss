@@ -1,5 +1,16 @@
 /* URL Composer Templates Styles */
 
+/* Fix for unclickable composer controls in Docuss */
+.composer-controls {
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure composer is above other elements */
+#reply-control {
+  z-index: 99998 !important;
+}
+
 /* Optional: Add visual indicator when template is active */
 .composer-container.has-template .d-editor-textarea-wrapper::before {
   content: "📝 Template loaded";
