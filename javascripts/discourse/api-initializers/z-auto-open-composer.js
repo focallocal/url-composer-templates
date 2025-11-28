@@ -19,6 +19,43 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
+  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
+  
+  // Draft resurrection watcher - prevents Discourse from resurrecting deleted drafts
+  let draftWatchInterval = null;
+  
+  const startDraftWatcher = (composer) => {
+    if (draftWatchInterval) {
+      clearInterval(draftWatchInterval);
+    }
+    
+    log("Starting draft resurrection watcher");
+    
+    draftWatchInterval = setInterval(() => {
+      const model = composer.get("model");
+      
+      // If composer closed or draft manually saved, stop watching
+      if (!model || !model.draftKey) {
+        log("Draft cleared or composer closed, stopping watcher");
+        clearInterval(draftWatchInterval);
+        draftWatchInterval = null;
+        return;
+      }
+      
+      // Check if template was applied
+      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+      if (!templateApplied) {
+        return;
+      }
+      
+      // If draft is trying to resurrect, kill it
+      const draftKey = model.draftKey;
+      if (draftKey && draftKey !== "new_topic") {
+        log("Draft resurrection detected, clearing draftKey:", draftKey);
+        model.set("draftKey", "new_topic");
+      }
+    }, 50); // Check every 50ms
+  };
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
@@ -77,7 +114,8 @@ export default apiInitializer("1.8.0", (api) => {
       templateId = params.get(settings.template_param_key);
     }
     
-    const hasTopics = params.get("has_topics") === "true";
+    // Get hasTopics from sessionStorage (set by postMessage from fl-maps iframe)
+    const hasTopics = sessionStorage.getItem('url_composer_has_topics') === 'true';
     
     // Check if we've already checked this page load to prevent loops
     // But we want to allow re-checks on navigation, so we use a session key that we clear on page change
@@ -185,6 +223,9 @@ export default apiInitializer("1.8.0", (api) => {
             });
 
             log("Composer opened successfully");
+            
+            // Start draft resurrection watcher
+            startDraftWatcher(composer);
             
           } catch (error) {
             log("Error opening composer:", error);

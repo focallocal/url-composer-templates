@@ -23,11 +23,14 @@ export default apiInitializer("1.8.0", (api) => {
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'dcs-composer-template') {
       const templateId = event.data.template;
+      const hasTopics = event.data.hasTopics;
+      
       if (templateId) {
         sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
+        sessionStorage.setItem('url_composer_has_topics', hasTopics ? 'true' : 'false');
         // Clear applied flag to allow new template application
         sessionStorage.removeItem(STORAGE_KEY_APPLIED);
-        log(" Stored template ID from postMessage:", templateId);
+        log("📨 Stored template ID from postMessage:", templateId, "hasTopics:", hasTopics);
       }
     }
   });
