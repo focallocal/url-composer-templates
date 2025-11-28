@@ -304,7 +304,6 @@ export default apiInitializer("1.8.0", (api) => {
       });
     });
   };
-  };
 
   // Run auto-open check on page changes
   api.onPageChange(() => {
