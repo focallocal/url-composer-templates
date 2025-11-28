@@ -163,6 +163,33 @@ export default apiInitializer("1.8.0", (api) => {
         shouldOpen = true;
         log("Mode is 'ifNoTopics' and has_topics!=true. No topics (or unknown). Opening.");
       }
+    } else if (template.mode === "ifUserHasNoTopic") {
+      // Check if the current user has already posted to this trigger
+      const triggerId = sessionStorage.getItem('url_composer_trigger_id');
+      const userPostedJson = sessionStorage.getItem('url_composer_user_posted');
+      
+      let userHasPosted = false;
+      if (userPostedJson && triggerId) {
+        try {
+          const postedTriggers = JSON.parse(userPostedJson);
+          if (Array.isArray(postedTriggers) && postedTriggers.includes(triggerId)) {
+            userHasPosted = true;
+          }
+        } catch (e) {
+          // Legacy format check
+          if (userPostedJson === triggerId) {
+            userHasPosted = true;
+          }
+        }
+      }
+      
+      if (userHasPosted) {
+        shouldOpen = false;
+        log("Mode is 'ifUserHasNoTopic' and user has already posted. NOT opening.");
+      } else {
+        shouldOpen = true;
+        log("Mode is 'ifUserHasNoTopic' and user hasn't posted yet. Opening.");
+      }
     }
 
     if (shouldOpen) {
@@ -251,5 +278,36 @@ export default apiInitializer("1.8.0", (api) => {
     setTimeout(() => {
       autoOpenComposerIfNeeded();
     }, 1000);
+  });
+  
+  // Listen for successful posts to update user_posted cache
+  api.onAppEvent("composer:posted", () => {
+    const triggerId = sessionStorage.getItem('url_composer_trigger_id');
+    if (!triggerId) return;
+    
+    log("📝 User posted, marking trigger as posted:", triggerId);
+    
+    // Get existing posted triggers
+    let postedTriggers = [];
+    const existingJson = sessionStorage.getItem('url_composer_user_posted');
+    if (existingJson) {
+      try {
+        const parsed = JSON.parse(existingJson);
+        if (Array.isArray(parsed)) {
+          postedTriggers = parsed;
+        } else {
+          postedTriggers = [existingJson];
+        }
+      } catch (e) {
+        postedTriggers = [existingJson];
+      }
+    }
+    
+    // Add this trigger if not already there
+    if (!postedTriggers.includes(triggerId)) {
+      postedTriggers.push(triggerId);
+      sessionStorage.setItem('url_composer_user_posted', JSON.stringify(postedTriggers));
+      log("✅ Updated user posted triggers:", postedTriggers);
+    }
   });
 });

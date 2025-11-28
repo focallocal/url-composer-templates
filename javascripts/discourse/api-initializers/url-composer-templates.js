@@ -18,19 +18,53 @@ export default apiInitializer("1.8.0", (api) => {
   // Storage keys
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
+  const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
+  
+  // Draft resurrection watcher (shared with z-auto-open-composer.js)
+  let draftWatchInterval = null;
+  
+  const startDraftWatcher = (composerModel) => {
+    if (draftWatchInterval) {
+      clearInterval(draftWatchInterval);
+    }
+    
+    log("Starting draft resurrection watcher");
+    
+    draftWatchInterval = setInterval(() => {
+      if (!composerModel || !composerModel.draftKey) {
+        log("Draft cleared or composer closed, stopping watcher");
+        clearInterval(draftWatchInterval);
+        draftWatchInterval = null;
+        return;
+      }
+      
+      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+      if (!templateApplied) {
+        return;
+      }
+      
+      const draftKey = composerModel.draftKey;
+      if (draftKey && draftKey !== "new_topic") {
+        log("Draft resurrection detected, clearing draftKey:", draftKey);
+        composerModel.set("draftKey", "new_topic");
+      }
+    }, 50);
+  };
 
   // Listen for composer template from iframe via postMessage
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'dcs-composer-template') {
       const templateId = event.data.template;
       const hasTopics = event.data.hasTopics;
+      const triggerId = event.data.triggerId;
       
       if (templateId) {
         sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
         sessionStorage.setItem('url_composer_has_topics', hasTopics ? 'true' : 'false');
+        sessionStorage.setItem('url_composer_trigger_id', triggerId || '');
         // Clear applied flag to allow new template application
         sessionStorage.removeItem(STORAGE_KEY_APPLIED);
-        log("📨 Stored template ID from postMessage:", templateId, "hasTopics:", hasTopics);
+        log("📨 Stored template ID from postMessage:", templateId, "hasTopics:", hasTopics, "triggerId:", triggerId);
       }
     }
   });
@@ -117,6 +151,9 @@ export default apiInitializer("1.8.0", (api) => {
     }
 
     log("Applying template:", template.id);
+    
+    // Start draft watcher BEFORE applying template
+    startDraftWatcher(composerModel);
     
     // Cancel any pending draft saves to prevent 409 conflicts
     if (composerModel._saveDraftDebounce) {
