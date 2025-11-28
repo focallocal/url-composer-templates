@@ -217,8 +217,12 @@ export default apiInitializer("1.8.0", (api) => {
           // Fallback: check if user is the first poster in the list (usually OP)
           const isFirstPoster = topic.posters && topic.posters.length > 0 && topic.posters[0].user_id === currentUser.id;
 
-          log(`Topic "${topic.title}" - isOP: ${isOP}, isFirstPoster: ${isFirstPoster}`);
-          return isOP || isFirstPoster;
+          // Fallback 2: Check if the topic author_id matches current user (if available in search results)
+          // Note: search results might not have author_id directly on the topic object, but let's check
+          const isAuthorId = topic.author_id === currentUser.id;
+
+          log(`Topic "${topic.title}" - isOP: ${isOP}, isFirstPoster: ${isFirstPoster}, isAuthorId: ${isAuthorId}`);
+          return isOP || isFirstPoster || isAuthorId;
         });
         
         if (hasPosted) {
@@ -286,6 +290,9 @@ export default apiInitializer("1.8.0", (api) => {
             }
           }
 
+          // Set flag to tell url-composer-templates.js to back off
+          sessionStorage.setItem('url_composer_opening_programmatically', 'true');
+          
           // Open composer with template text directly
           composer.open({
             action: "createTopic",
@@ -297,6 +304,11 @@ export default apiInitializer("1.8.0", (api) => {
           });
 
           log("Composer opened successfully with template text");
+          
+          // Clear the flag after a delay to allow other scripts to resume normal operation
+          setTimeout(() => {
+            sessionStorage.removeItem('url_composer_opening_programmatically');
+          }, 2000);
           
           // We don't need to block saveDraft anymore because we are passing the body directly
           // Discourse will handle the draft creation naturally.
