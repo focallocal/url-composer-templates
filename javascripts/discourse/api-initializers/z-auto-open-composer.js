@@ -186,9 +186,9 @@ export default apiInitializer("1.8.0", (api) => {
       
       log("Checking if user has posted to tags:", tags);
       
-      // Search for topics by current user with these tags using Discourse search syntax
+      // Search for topics created by current user with these tags
       const tagsKey = tags.join("+");
-      const searchQuery = `tags:${tagsKey} @${currentUser.username}`;
+      const searchQuery = `tags:${tagsKey} in:created`;
       
       log("🔍 Search query:", searchQuery);
       
@@ -199,7 +199,10 @@ export default apiInitializer("1.8.0", (api) => {
           page: 1
         }
       }).then((results) => {
-        const hasPosted = results.topics && results.topics.length > 0;
+        // Verify topics are actually created by current user
+        const hasPosted = results.topics && results.topics.some(topic => 
+          topic.created_by && topic.created_by.username === currentUser.username
+        );
         
         if (hasPosted) {
           log("User has already posted to these tags. NOT opening composer.");

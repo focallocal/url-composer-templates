@@ -190,9 +190,6 @@ export default apiInitializer("1.8.0", (api) => {
       log("Applied title:", template.title);
     }
 
-    // Start draft watcher
-    startDraftWatcher(composerModel);
-    
     // Re-enable draft saving after deletion completes
     deleteDraftPromise.finally(() => {
       schedule("afterRender", () => {
@@ -271,6 +268,30 @@ export default apiInitializer("1.8.0", (api) => {
     log("Composer cancelled, clearing all template data");
     sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
     sessionStorage.removeItem(STORAGE_KEY_APPLIED);
+  });
+
+  // Notify fl-maps iframe when user posts so bubble count can update
+  api.onAppEvent("composer:posted", () => {
+    const triggerId = sessionStorage.getItem('url_composer_trigger_id');
+    if (!triggerId) return;
+    
+    log("📨 Post successful, notifying fl-maps iframe:", triggerId);
+    
+    // Find fl-maps iframe and send postMessage
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+      try {
+        if (iframe.src && iframe.src.includes('fl-maps.publichappinessmovement.com')) {
+          iframe.contentWindow.postMessage({
+            type: 'dcs-topic-posted',
+            triggerId: triggerId
+          }, 'https://fl-maps.publichappinessmovement.com');
+          log("✅ Message sent to fl-maps iframe");
+        }
+      } catch (e) {
+        log("⚠️ Could not send message to iframe:", e);
+      }
+    });
   });
 
   // Detect URL parameter changes on page navigation
