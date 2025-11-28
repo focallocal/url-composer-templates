@@ -1,46 +1,37 @@
 import { apiInitializer } from "discourse/lib/api";
 import { schedule } from "@ember/runloop";
-import { ajax } from "discourse/lib/ajax";
 
 export default apiInitializer("1.8.0", (api) => {
-  console.log("🚀🚀🚀 AUTO-OPEN COMPOSER LOADED - VERSION 2.1.0 🚀🚀🚀");
+  console.log(" AUTO-OPEN COMPOSER LOADED - VERSION 3.0.0 (SIMPLE MODE) ");
   
   if (!settings.enable_url_composer_templates || !settings.enable_auto_open_composer) {
-    console.log("🚀 Auto-open disabled via settings");
+    console.log(" Auto-open disabled via settings");
     return;
   }
 
   const log = (...args) => {
     if (settings.debug_mode) {
-      console.log("🚀 [Auto-Open Composer]", ...args);
+      console.log(" [Auto-Open Composer]", ...args);
     }
   };
 
   log("Initializing auto-open logic");
 
-  const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
-  const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
-  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
-  
-  // Topic creation cache - prevents duplicate opens when search index lags
-  // Key: "username:tag1+tag2" or "any:tag1+tag2", Value: { timestamp, exists: true }
-  const topicCreationCache = new Map();
-  const CACHE_DURATION_MS = 5000; // 5 seconds
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
     for (let i = 1; i <= 6; i++) {
-      const id = settings[`template_${i}_id`];
-      const enabled = settings[`template_${i}_enabled`];
+      const id = settings[\	emplate_\_id\];
+      const enabled = settings[\	emplate_\_enabled\];
       
       if (enabled && id === templateId) {
         return {
           enabled: true,
-          id: settings[`template_${i}_id`],
-          urlMatch: settings[`template_${i}_url_match`],
-          mode: settings[`template_${i}_mode`] || "ifUserHasNoTopic",
-          useFor: settings[`template_${i}_use_for`] || "both"
+          id: settings[\	emplate_\_id\],
+          urlMatch: settings[\	emplate_\_url_match\],
+          mode: settings[\	emplate_\_mode\] || "ifNoTopics",
+          useFor: settings[\	emplate_\_use_for\] || "both"
         };
       }
     }
@@ -73,119 +64,31 @@ export default apiInitializer("1.8.0", (api) => {
     return [];
   };
 
-  // Check if a topic exists with the current tags
-  const checkTopicExists = async (tags, mode) => {
-    if (!tags || tags.length === 0) {
-      log("No tags found, skipping topic check");
-      return true; // Assume topic exists if no tags
-    }
-
-    const currentUser = api.getCurrentUser();
-    if (!currentUser) {
-      log("No current user, skipping topic check");
-      return true; // Don't auto-open if user not logged in
-    }
-
-    // Check cache first
-    const tagsKey = tags.join("+");
-    const cacheKey = mode === "ifUserHasNoTopic" 
-      ? `${currentUser.username}:${tagsKey}`
-      : `any:${tagsKey}`;
-    
-    const cached = topicCreationCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
-      log(`Using cached result for ${cacheKey}:`, cached.exists);
-      return cached.exists;
-    }
-
-    try {
-      // Build search query based on mode
-      const searchQuery = mode === "ifUserHasNoTopic"
-        ? `tags:${tagsKey} @${currentUser.username}`
-        : `tags:${tagsKey}`;
-      
-      log(`🔍 Search query (mode=${mode}): ${searchQuery}`);
-      
-      const response = await ajax(`/search.json`, {
-        data: {
-          q: searchQuery,
-          type: "topic",
-        },
-      });
-
-      const topicExists = response?.topics && response.topics.length > 0;
-      
-      // Cache result
-      topicCreationCache.set(cacheKey, {
-        timestamp: Date.now(),
-        exists: topicExists
-      });
-
-      // If user has posted in ifUserHasNoTopic mode, store permanently
-      if (topicExists && mode === "ifUserHasNoTopic") {
-        sessionStorage.setItem(STORAGE_KEY_USER_POSTED, tagsKey);
-        log(`Stored permanent flag: user has posted to ${tagsKey}`);
-      }
-      
-      log("Topic check result:", { 
-        tags, 
-        mode,
-        username: currentUser.username,
-        searchQuery,
-        topicExists, 
-        count: response?.topics?.length || 0 
-      });
-      
-      return topicExists;
-    } catch (error) {
-      log("Error checking for topics:", error);
-      return true; // Assume topic exists on error to avoid unwanted composer opens
-    }
-  };
-
   // Auto-open composer if conditions are met
-  const autoOpenComposerIfNeeded = async () => {
-    const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+  const autoOpenComposerIfNeeded = () => {
+    const params = new URLSearchParams(window.location.search);
+    const templateId = params.get(settings.template_param_key);
+    const hasTopics = params.get("has_topics") === "true";
+    
+    // Check if we've already checked this page load to prevent loops
+    // But we want to allow re-checks on navigation, so we use a session key that we clear on page change
     const alreadyChecked = sessionStorage.getItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
+    if (alreadyChecked) {
+      return;
+    }
+    sessionStorage.setItem(STORAGE_KEY_AUTO_OPEN_CHECKED, "true");
 
-    // Only check once per page load, and only if a template parameter exists
-    if (alreadyChecked || !templateId) {
+    if (!templateId) {
       return;
     }
 
-    // Mark as checked
-    sessionStorage.setItem(STORAGE_KEY_AUTO_OPEN_CHECKED, "true");
-
-    log("Checking if we should auto-open composer for Docuss link with template:", templateId);
+    log("Checking template:", templateId, "has_topics:", hasTopics);
 
     // Get template settings
     const template = getTemplateSettings(templateId);
     if (!template) {
       log("Template not found or not enabled:", templateId);
       return;
-    }
-
-    // Check if user has already posted (persistent flag for ifUserHasNoTopic)
-    if (template.mode === "ifUserHasNoTopic") {
-      const tags = getTagsFromUrl();
-      const tagsKey = tags.join("+");
-      const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
-      
-      if (userPostedJson) {
-        try {
-          const postedTags = JSON.parse(userPostedJson);
-          if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
-            log("User has already posted to these tags (found in session cache), not opening composer");
-            return;
-          }
-        } catch (e) {
-          // Fallback for legacy string format
-          if (userPostedJson === tagsKey) {
-            log("User has already posted to these tags (legacy cache), not opening composer");
-            return;
-          }
-        }
-      }
     }
 
     // Check if URL matches (if url_match is configured)
@@ -195,28 +98,31 @@ export default apiInitializer("1.8.0", (api) => {
         log("URL doesn't match template url_match:", template.urlMatch);
         return;
       }
-      log("URL matches template url_match:", template.urlMatch);
     }
 
-    const tags = getTagsFromUrl();
-    
     // Check mode to determine if we should open
     let shouldOpen = false;
     
     if (template.mode === "always") {
       shouldOpen = true;
       log("Mode is 'always', will open composer");
-    } else {
-      const topicExists = await checkTopicExists(tags, template.mode);
-      shouldOpen = !topicExists;
-      log(`Mode is '${template.mode}', topicExists=${topicExists}, shouldOpen=${shouldOpen}`);
+    } else if (template.mode === "ifNoTopics") {
+      // If has_topics is true, it means topics exist, so we do NOT open.
+      // If has_topics is false or missing, we assume no topics exist, so we OPEN.
+      if (hasTopics) {
+        shouldOpen = false;
+        log("Mode is 'ifNoTopics' and has_topics=true. Topics exist. NOT opening.");
+      } else {
+        shouldOpen = true;
+        log("Mode is 'ifNoTopics' and has_topics!=true. No topics (or unknown). Opening.");
+      }
     }
 
     if (shouldOpen) {
       log("Opening composer for template:", template);
 
       schedule("afterRender", () => {
-        // Poll for composer and site readiness instead of fixed delay
+        // Poll for composer and site readiness
         const waitForReady = (callback, maxAttempts = 20) => {
           let attempts = 0;
           const check = () => {
@@ -225,10 +131,9 @@ export default apiInitializer("1.8.0", (api) => {
             const currentUser = api.getCurrentUser();
             
             if (composer && site && site.categories && currentUser) {
-              log(`Ready after ${attempts * 50}ms (${attempts} checks)`);
               callback();
             } else if (attempts++ < maxAttempts) {
-              setTimeout(check, 50); // Check every 50ms, max 1 second
+              setTimeout(check, 50);
             } else {
               log("Timeout waiting for composer readiness");
             }
@@ -239,12 +144,11 @@ export default apiInitializer("1.8.0", (api) => {
         waitForReady(() => {
           try {
             const composer = api.container.lookup("controller:composer");
-            const currentUser = api.getCurrentUser();
             const site = api.container.lookup("service:site");
+            const tags = getTagsFromUrl();
 
-            // CATEGORY AUTO-SELECTION FOR TEMPLATE FORMS
+            // CATEGORY AUTO-SELECTION
             let categoryId = null;
-            const params = new URLSearchParams(window.location.search);
             const categoryParam = params.get("category");
 
             if (categoryParam) {
@@ -260,11 +164,10 @@ export default apiInitializer("1.8.0", (api) => {
               );
               if (hiddenCategory) {
                 categoryId = hiddenCategory.id;
-                log("Auto-selected hidden category for template form:", categoryId);
               }
             }
 
-            // Open composer with category already set
+            // Open composer
             composer.open({
               action: "createTopic",
               draftKey: "new_topic",
@@ -272,155 +175,20 @@ export default apiInitializer("1.8.0", (api) => {
               tags: tags.length > 0 ? tags : null,
             });
 
-            log("Composer opened successfully with category:", categoryId);
+            log("Composer opened successfully");
             
-            // Start draft resurrection watcher
-            startDraftWatcher(composer);
           } catch (error) {
             log("Error opening composer:", error);
           }
         });
       });
-    } else {
-      log("Conditions not met, not auto-opening composer");
     }
-  };
-
-  // Listen for successful posts to update cache immediately
-  api.onAppEvent("composer:posted", (data, type, post) => {
-    log("📝 Composer posted event received", { data, type, post });
-    
-    // Try to get tags from the post object or composer model first
-    let tags = [];
-    
-    // 1. Try to get tags from the post object passed by event
-    if (post && post.tags) {
-      tags = post.tags;
-      log("Got tags from post object:", tags);
-    } 
-    // 2. Try to get tags from the composer controller model
-    else {
-      const composer = api.container.lookup("controller:composer");
-      const model = composer?.get("model");
-      if (model && model.tags) {
-        tags = model.tags;
-        log("Got tags from composer model:", tags);
-      }
-      // 3. Fallback to URL tags
-      else {
-        tags = getTagsFromUrl();
-        log("Fallback to URL tags:", tags);
-      }
-    }
-
-    if (tags && tags.length > 0) {
-      const tagsKey = tags.join("+");
-      
-      // 1. Set persistent session flag (append to array)
-      let postedTags = [];
-      const existingJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
-      if (existingJson) {
-        try {
-          const parsed = JSON.parse(existingJson);
-          if (Array.isArray(parsed)) {
-            postedTags = parsed;
-          } else {
-            postedTags = [existingJson]; // Convert legacy string to array
-          }
-        } catch (e) {
-          postedTags = [existingJson];
-        }
-      }
-      
-      if (!postedTags.includes(tagsKey)) {
-        postedTags.push(tagsKey);
-        sessionStorage.setItem(STORAGE_KEY_USER_POSTED, JSON.stringify(postedTags));
-        log(`✅ Optimistically marked user as having posted to: ${tagsKey}`);
-      }
-      
-      // 2. Update memory cache
-      const currentUser = api.getCurrentUser();
-      if (currentUser) {
-        // Update both specific user cache and general cache
-        const userCacheKey = `${currentUser.username}:${tagsKey}`;
-        const anyCacheKey = `any:${tagsKey}`;
-        
-        const cacheData = { timestamp: Date.now(), exists: true };
-        
-        topicCreationCache.set(userCacheKey, cacheData);
-        topicCreationCache.set(anyCacheKey, cacheData);
-        
-        log("✅ Updated topic creation cache");
-      }
-    }
-  });
-
-  // Watch for draft resurrection and kill it
-  let draftWatchInterval = null;
-  
-  const startDraftWatcher = (composer) => {
-    if (draftWatchInterval) {
-      clearInterval(draftWatchInterval);
-    }
-    
-    log("Starting draft resurrection watcher");
-    
-    draftWatchInterval = setInterval(() => {
-      const model = composer.get("model");
-      
-      // If composer closed or draft manually saved, stop watching
-      if (!model || !model.draftKey) {
-        log("Draft cleared or composer closed, stopping watcher");
-        clearInterval(draftWatchInterval);
-        draftWatchInterval = null;
-        return;
-      }
-      
-      // Check if template was applied
-      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
-      if (!templateApplied) {
-        return;
-      }
-      
-      // If draft is trying to resurrect, kill it
-      const draftKey = model.draftKey;
-      if (draftKey && draftKey !== "new_topic") {
-        log("Draft resurrection detected, clearing draftKey:", draftKey);
-        model.set("draftKey", null);
-      }
-    }, 50); // Check every 50ms
   };
 
   // Run auto-open check on page changes
   api.onPageChange(() => {
-    const composer = api.container.lookup("controller:composer");
-    if (composer && composer.get("model")) {
-      log("Composer already open, skipping auto-open check on page change");
-      return;
-    }
-
-    // Only clear auto-open flag if user hasn't posted yet
-    // We need to check if the current tags are in the posted list
-    const tags = getTagsFromUrl();
-    const tagsKey = tags.join("+");
-    const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
-    let hasPosted = false;
+    sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
     
-    if (userPostedJson) {
-      try {
-        const postedTags = JSON.parse(userPostedJson);
-        if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
-          hasPosted = true;
-        }
-      } catch (e) {
-        if (userPostedJson === tagsKey) hasPosted = true;
-      }
-    }
-
-    if (!hasPosted) {
-      sessionStorage.removeItem(STORAGE_KEY_AUTO_OPEN_CHECKED);
-    }
-
     schedule("afterRender", () => {
       setTimeout(() => {
         autoOpenComposerIfNeeded();
@@ -432,8 +200,6 @@ export default apiInitializer("1.8.0", (api) => {
   schedule("afterRender", () => {
     setTimeout(() => {
       autoOpenComposerIfNeeded();
-    }, 1500);
+    }, 1000);
   });
-
-  log("Auto-open initialization complete");
 });

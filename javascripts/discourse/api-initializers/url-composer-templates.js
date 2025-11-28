@@ -9,7 +9,7 @@ export default apiInitializer("1.8.0", (api) => {
 
   const log = (...args) => {
     if (settings.debug_mode) {
-      console.log("🎨 [URL Composer Templates]", ...args);
+      console.log(" [URL Composer Templates]", ...args);
     }
   };
 
@@ -18,29 +18,6 @@ export default apiInitializer("1.8.0", (api) => {
   // Storage keys
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
-  const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
-
-  // Helper to get tags from URL (duplicated from z-auto-open-composer.js)
-  const getTagsFromUrl = () => {
-    const path = window.location.pathname;
-    // Match tag intersection routes: /tags/intersection/tag1/tag2
-    const tagIntersectionMatch = path.match(/\/tags\/intersection\/(.+)/);
-    if (tagIntersectionMatch) {
-      return tagIntersectionMatch[1].split("/").map(decodeURIComponent);
-    }
-    // Match single tag routes: /tag/tagname
-    const singleTagMatch = path.match(/\/tag\/([^/]+)/);
-    if (singleTagMatch) {
-      return [decodeURIComponent(singleTagMatch[1])];
-    }
-    // Match tags query parameter
-    const params = new URLSearchParams(window.location.search);
-    const tagsParam = params.get("tags");
-    if (tagsParam) {
-      return tagsParam.split(",").map((t) => t.trim());
-    }
-    return [];
-  };
 
   // Listen for composer template from iframe via postMessage
   window.addEventListener('message', (event) => {
@@ -50,9 +27,7 @@ export default apiInitializer("1.8.0", (api) => {
         sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, templateId);
         // Clear applied flag to allow new template application
         sessionStorage.removeItem(STORAGE_KEY_APPLIED);
-        log("📨 Stored template ID from postMessage:", templateId);
-        // Note: Don't auto-open here - let Docuss/DCSLink handle composer opening
-        // Template will be applied when composer opens via onShow() hook
+        log(" Stored template ID from postMessage:", templateId);
       }
     }
   });
@@ -61,16 +36,15 @@ export default apiInitializer("1.8.0", (api) => {
   const getEnabledTemplates = () => {
     const templates = [];
     for (let i = 1; i <= 6; i++) {
-      const enabled = settings[`template_${i}_enabled`];
+      const enabled = settings[\	emplate_\_enabled\];
       if (enabled) {
         templates.push({
-          id: settings[`template_${i}_id`],
-          title: settings[`template_${i}_title`],
-          text: settings[`template_${i}_text`],
-          useFor: settings[`template_${i}_use_for`],
-          mode: settings[`template_${i}_mode`] || "ifUserHasNoTopic",
-          autoOpen: settings[`template_${i}_auto_open`],
-          urlMatch: (settings[`template_${i}_url_match`] || "").trim(),
+          id: settings[\	emplate_\_id\],
+          title: settings[\	emplate_\_title\],
+          text: settings[\	emplate_\_text\],
+          useFor: settings[\	emplate_\_use_for\],
+          mode: settings[\	emplate_\_mode\] || "ifNoTopics",
+          urlMatch: (settings[\	emplate_\_url_match\] || "").trim(),
         });
       }
     }
@@ -89,7 +63,7 @@ export default apiInitializer("1.8.0", (api) => {
 
   const getTemplateIdFromPath = () => {
     const templates = getEnabledTemplates();
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const currentUrl = \\\\\;
     const match = templates.find((template) => template.urlMatch && currentUrl.includes(template.urlMatch));
     return match ? match.id : null;
   };
@@ -130,7 +104,6 @@ export default apiInitializer("1.8.0", (api) => {
 
     // Only apply if composer is empty or has default text
     const currentContent = composerModel.get("reply") || "";
-    const currentTitle = composerModel.get("title") || "";
     
     // Check if there's existing content (allow title from Docuss/elsewhere)
     if (currentContent.trim().length > 0) {
@@ -167,7 +140,7 @@ export default apiInitializer("1.8.0", (api) => {
     const shouldDelete = draftKey && draftKey !== "new_topic";
     
     const deleteDraftPromise = shouldDelete
-      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
+      ? ajax(\/drafts/\.json\, { type: "DELETE" })
           .then(() => {
             log("Existing draft deleted");
           })
@@ -203,13 +176,13 @@ export default apiInitializer("1.8.0", (api) => {
 
   // Use composer:opened event instead of onShow hook (more reliable with Docuss)
   api.onAppEvent("composer:opened", () => {
-    log("🔔 composer:opened event fired");
+    log(" composer:opened event fired");
 
     // Use a short delay to allow Docuss to set up category/tags, but template applies immediately
     schedule("afterRender", () => {
-      log("⏰ afterRender scheduled, starting 200ms delay");
+      log(" afterRender scheduled, starting 200ms delay");
       setTimeout(() => {
-        log("✅ setTimeout completed, checking template");
+        log(" setTimeout completed, checking template");
         const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
         const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
         log("Template state:", { templateId, alreadyApplied });
@@ -232,37 +205,6 @@ export default apiInitializer("1.8.0", (api) => {
           return;
         }
 
-        // Check if we should close the composer because the user already posted
-        if (template.mode === "ifUserHasNoTopic") {
-          // Try to get tags from model first, then URL
-          let tags = model.get("tags") || [];
-          if (!tags || tags.length === 0) {
-             tags = getTagsFromUrl();
-          }
-          
-          const tagsKey = tags.join("+");
-          const userPostedJson = sessionStorage.getItem(STORAGE_KEY_USER_POSTED);
-          let hasPosted = false;
-          
-          if (userPostedJson) {
-            try {
-              const postedTags = JSON.parse(userPostedJson);
-              if (Array.isArray(postedTags) && postedTags.includes(tagsKey)) {
-                hasPosted = true;
-              }
-            } catch (e) {
-              if (userPostedJson === tagsKey) hasPosted = true;
-            }
-          }
-
-          if (hasPosted) {
-            log("⛔ User has already posted to these tags, closing composer!");
-            composerController.close();
-            sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
-            return;
-          }
-        }
-
         const isCreatingTopic = model.get("creatingTopic");
         log("Composer context:", { isCreatingTopic, useFor: template.useFor });
 
@@ -276,7 +218,7 @@ export default apiInitializer("1.8.0", (api) => {
             isCreatingTopic,
           });
         }
-      }, 200); // Reduced delay - auto-open handles the longer wait
+      }, 200);
     });
   });
 
@@ -313,20 +255,6 @@ export default apiInitializer("1.8.0", (api) => {
       const templateId = storeTemplateIdFromUrl();
       if (templateId) {
         log("Page changed with template ID:", templateId);
-      } else {
-        // If we navigated away from a template context (e.g. Docuss), close the composer
-        // This fixes the issue where the composer stays open when leaving Docuss
-        if (!url.includes("/tags/intersection/")) {
-          const composerController = api.container.lookup("controller:composer");
-          if (composerController && composerController.get("model")) {
-            const model = composerController.get("model");
-            // Only auto-close new topic drafts to avoid losing user work on replies
-            if (model.draftKey === "new_topic") {
-              log("Navigated away from Docuss context, closing composer");
-              composerController.close();
-            }
-          }
-        }
       }
     }, 100);
   });

@@ -52,13 +52,12 @@ template_1_use_for:
   description: "When to apply this template"
 
 template_1_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 # Template 2 - Going
 template_2_enabled:
@@ -97,13 +96,12 @@ template_2_use_for:
   description: "When to apply this template"
 
 template_2_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 # Template 3 - Invite
 template_3_enabled:
@@ -142,13 +140,12 @@ template_3_use_for:
   description: "When to apply this template"
 
 template_3_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 # Template 4 - Wall
 template_4_enabled:
@@ -187,13 +184,12 @@ template_4_use_for:
   description: "When to apply this template"
 
 template_4_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 # Template 5 - Media
 template_5_enabled:
@@ -232,13 +228,12 @@ template_5_use_for:
   description: "When to apply this template"
 
 template_5_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 # Template 6 - Stories
 template_6_enabled:
@@ -277,13 +272,12 @@ template_6_use_for:
   description: "When to apply this template"
 
 template_6_mode:
-  default: "ifUserHasNoTopic"
+  default: "ifNoTopics"
   type: enum
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't created a topic"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist (requires has_topics=false in URL)"
 
 debug_mode:
   default: false
