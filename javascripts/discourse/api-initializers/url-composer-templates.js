@@ -274,8 +274,14 @@ export default apiInitializer("1.8.0", (api) => {
     // Debounce page change events to prevent multiple rapid executions
     clearTimeout(pageChangeTimeout);
     pageChangeTimeout = setTimeout(() => {
-      // Clear the applied flag on page change
-      sessionStorage.removeItem(STORAGE_KEY_APPLIED);
+      // Don't clear applied flag if composer is open - prevents re-applying template
+      const composerController = api.container.lookup("controller:composer");
+      const isComposerOpen = composerController?.model?.viewOpen;
+      
+      if (!isComposerOpen) {
+        // Only clear applied flag when composer is closed
+        sessionStorage.removeItem(STORAGE_KEY_APPLIED);
+      }
 
       // Check for new template ID in URL
       const templateId = storeTemplateIdFromUrl();
