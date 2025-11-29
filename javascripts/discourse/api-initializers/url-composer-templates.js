@@ -168,18 +168,43 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Simply set the template content - don't fight with Discourse's draft system
-    schedule("afterRender", () => {
-      // Set template values
-      composerModel.set("reply", template.text);
-      
-      if (template.title && composerModel.get("creatingTopic")) {
-        composerModel.set("title", template.title);
-        log("Applied title:", template.title);
+    // Wait for Docuss navigation to complete before setting content
+    // Check if model has __dcsNavigatedToTag flag set by Docuss
+    const checkAndApply = () => {
+      if (composerModel.__dcsNavigatedToTag) {
+        log("Docuss navigation complete, applying template now");
+        schedule("afterRender", () => {
+          composerModel.set("reply", template.text);
+          
+          if (template.title && composerModel.get("creatingTopic")) {
+            composerModel.set("title", template.title);
+            log("Applied title:", template.title);
+          }
+          
+          log("Template applied, Discourse will auto-save normally");
+        });
+      } else {
+        // Check again in 50ms if Docuss is still navigating
+        setTimeout(checkAndApply, 50);
       }
-      
-      log("Template applied, Discourse will auto-save normally");
-    });
+    };
+    
+    // Start checking (with timeout fallback)
+    const timeout = setTimeout(() => {
+      log("Docuss navigation timeout, applying template anyway");
+      schedule("afterRender", () => {
+        composerModel.set("reply", template.text);
+        
+        if (template.title && composerModel.get("creatingTopic")) {
+          composerModel.set("title", template.title);
+          log("Applied title:", template.title);
+        }
+        
+        log("Template applied, Discourse will auto-save normally");
+      });
+    }, 1000); // 1 second max wait
+    
+    checkAndApply();
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
