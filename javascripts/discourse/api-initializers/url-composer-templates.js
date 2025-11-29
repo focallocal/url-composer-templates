@@ -169,29 +169,15 @@ export default apiInitializer("1.8.0", (api) => {
     log("Applying template:", template.id);
     
     // Wait for Docuss navigation to complete before setting content
-    // Check if model has __dcsNavigatedToTag flag set by Docuss
-    const checkAndApply = () => {
-      if (composerModel.__dcsNavigatedToTag) {
-        log("Docuss navigation complete, applying template now");
-        schedule("afterRender", () => {
-          composerModel.set("reply", template.text);
-          
-          if (template.title && composerModel.get("creatingTopic")) {
-            composerModel.set("title", template.title);
-            log("Applied title:", template.title);
-          }
-          
-          log("Template applied, Discourse will auto-save normally");
-        });
-      } else {
-        // Check again in 50ms if Docuss is still navigating
-        setTimeout(checkAndApply, 50);
-      }
-    };
+    let timeoutId = null;
+    let applied = false;
     
-    // Start checking (with timeout fallback)
-    const timeout = setTimeout(() => {
-      log("Docuss navigation timeout, applying template anyway");
+    const applyContent = () => {
+      if (applied) return;
+      applied = true;
+      
+      if (timeoutId) clearTimeout(timeoutId);
+      
       schedule("afterRender", () => {
         composerModel.set("reply", template.text);
         
@@ -202,6 +188,27 @@ export default apiInitializer("1.8.0", (api) => {
         
         log("Template applied, Discourse will auto-save normally");
       });
+    };
+    
+    // Check if model has __dcsNavigatedToTag flag set by Docuss
+    const checkAndApply = () => {
+      if (applied) return;
+      
+      if (composerModel.__dcsNavigatedToTag) {
+        log("Docuss navigation complete, applying template now");
+        applyContent();
+      } else {
+        // Check again in 50ms if Docuss is still navigating
+        setTimeout(checkAndApply, 50);
+      }
+    };
+    
+    // Start checking (with timeout fallback)
+    timeoutId = setTimeout(() => {
+      if (!applied) {
+        log("Docuss navigation timeout, applying template anyway");
+        applyContent();
+      }
     }, 1000); // 1 second max wait
     
     checkAndApply();
