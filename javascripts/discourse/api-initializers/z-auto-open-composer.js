@@ -134,8 +134,11 @@ export default apiInitializer("1.8.0", (api) => {
     
     // Check if composer is already open - if so, don't try to open it again
     const composer = api.container?.lookup?.("controller:composer");
-    if (composer && composer.get("model")) {
-      log("Composer already open, skipping auto-open");
+    const isOpen = composer && (composer.get("model") || composer.model);
+    const viewOpen = composer && (composer.get("model.viewOpen") || composer.model?.viewOpen);
+    
+    if (isOpen || viewOpen) {
+      log("Composer already open, skipping auto-open", { isOpen, viewOpen });
       return;
     }
 
