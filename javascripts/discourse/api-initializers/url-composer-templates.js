@@ -182,9 +182,9 @@ export default apiInitializer("1.8.0", (api) => {
     
     // Delete any existing draft to prevent "discard" dialog
     const draftKey = composerModel.get("draftKey");
-    const deleteDraftPromise = draftKey && draftKey !== "new_topic"
+    const deleteDraftPromise = draftKey
       ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
-          .then(() => log("Existing draft deleted"))
+          .then(() => log("Existing draft deleted:", draftKey))
           .catch((e) => {
             if (e.jqXHR?.status !== 404) {
               log("Draft deletion warning:", e);
