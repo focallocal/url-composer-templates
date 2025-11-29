@@ -149,13 +149,19 @@ export default apiInitializer("1.8.0", (api) => {
   const applyTemplate = (composerModel, template) => {
     if (!composerModel || !template) return;
 
-    // Only apply if composer is empty or has default text
+    // Only apply if composer is empty or doesn't already have this template
     const currentContent = composerModel.get("reply") || "";
     
-    // Check if there's existing content (allow title from Docuss/elsewhere)
-    if (currentContent.trim().length > 0) {
-      log("Composer already has content, skipping template");
-      // Clear the template ID to prevent re-application
+    // Check if template is already applied (exact match or contains template text)
+    if (currentContent.includes(template.text.trim())) {
+      log("Template already applied (content contains template text), skipping");
+      sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
+      return;
+    }
+    
+    // Check if there's other existing content
+    if (currentContent.trim().length > 0 && !currentContent.includes(template.text.trim())) {
+      log("Composer already has different content, skipping template");
       sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
       return;
     }
