@@ -208,7 +208,9 @@ export default apiInitializer("1.8.0", (api) => {
       
       // Check if the original model signaled navigation
       if (composerModel.__dcsNavigatedToTag) {
-        // Give a small buffer for any navigation-triggered saves to start
+        // Give a larger buffer (1000ms) for navigation-triggered saves and composer_messages refresh to complete.
+        // The 409 Conflict happens because the navigation triggers a save (bumping sequence on server),
+        // but the client model might not have updated its sequence yet.
         setTimeout(() => {
           if (applied) return;
           
@@ -227,9 +229,31 @@ export default apiInitializer("1.8.0", (api) => {
             log("Composer model was swapped during navigation. Applying to new model.");
           }
 
-          log("Docuss navigation complete and no save in progress, applying template");
-          applyContent();
-        }, 250);
+          log("Docuss navigation complete. Draft sequence:", latestModel.get("draftSequence"));
+          
+          // Apply to the latest model
+          schedule("afterRender", () => {
+            // Double check we aren't overwriting user input that happened during the delay
+            const currentContent = latestModel.get("reply") || "";
+            if (currentContent.trim().length > 0 && !currentContent.includes(template.text.trim())) {
+               log("User typed content during navigation delay, skipping template");
+               return;
+            }
+
+            latestModel.set("reply", template.text);
+            
+            if (template.title && latestModel.get("creatingTopic")) {
+              latestModel.set("title", template.title);
+              log("Applied title:", template.title);
+            }
+            
+            log("Template applied, Discourse will auto-save normally");
+          });
+          
+          applied = true;
+          if (timeoutId) clearTimeout(timeoutId);
+
+        }, 1000);
       } else {
         // Check again in 50ms if Docuss is still navigating
         setTimeout(checkAndApply, 50);
