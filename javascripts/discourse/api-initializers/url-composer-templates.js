@@ -203,9 +203,11 @@ export default apiInitializer("1.8.0", (api) => {
           log("Applied title:", template.title);
         }
         
-        // Re-enable draft saving
-        saveBlocked = false;
-        log("Draft saving re-enabled - Discourse auto-save will handle next save");
+        // Add delay before re-enabling draft saving to avoid 409 conflicts
+        setTimeout(() => {
+          saveBlocked = false;
+          log("Draft saving re-enabled after delay");
+        }, 500);
       });
     });
 
