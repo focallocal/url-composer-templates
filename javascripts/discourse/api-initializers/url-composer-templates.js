@@ -278,45 +278,47 @@ export default apiInitializer("1.8.0", (api) => {
   api.onAppEvent("composer:opened", () => {
     log(" composer:opened event fired");
 
-    // Apply template immediately when composer is ready - no delay needed
-    schedule("afterRender", () => {
-      log(" afterRender scheduled, checking template");
-      const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
-      const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
-      log("Template state:", { templateId, alreadyApplied });
+    // Delay the check to allow Docuss navigation to settle and the composer to fully initialize
+    setTimeout(() => {
+      schedule("afterRender", () => {
+        log(" afterRender scheduled (delayed), checking template");
+        const templateId = sessionStorage.getItem(STORAGE_KEY_TEMPLATE_ID);
+        const alreadyApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
+        log("Template state:", { templateId, alreadyApplied });
 
-      if (!templateId || alreadyApplied) {
-        log("Skipping: no template ID or already applied");
-        return;
-      }
+        if (!templateId || alreadyApplied) {
+          log("Skipping: no template ID or already applied");
+          return;
+        }
 
-      const template = findTemplate(templateId);
-      if (!template) {
-        log("No matching template found for ID:", templateId);
-        return;
-      }
+        const template = findTemplate(templateId);
+        if (!template) {
+          log("No matching template found for ID:", templateId);
+          return;
+        }
 
-      const composerController = api.container.lookup("controller:composer");
-      const model = composerController?.model || composerController?.get?.("model");
-      if (!model) {
-        log("No composer model found");
-        return;
-      }
+        const composerController = api.container.lookup("controller:composer");
+        const model = composerController?.model || composerController?.get?.("model");
+        if (!model) {
+          log("No composer model found");
+          return;
+        }
 
-      const isCreatingTopic = model.get("creatingTopic");
-      log("Composer context:", { isCreatingTopic, useFor: template.useFor });
+        const isCreatingTopic = model.get("creatingTopic");
+        log("Composer context:", { isCreatingTopic, useFor: template.useFor });
 
-      if (shouldApplyTemplate(template, isCreatingTopic)) {
-        // Apply template immediately - no delay, no draft conflicts
-        applyTemplate(model, template);
-      } else {
-        log("Template not applicable for current context:", {
-          templateId,
-          useFor: template.useFor,
-          isCreatingTopic,
-        });
-      }
-    });
+        if (shouldApplyTemplate(template, isCreatingTopic)) {
+          // Apply template immediately - no delay, no draft conflicts
+          applyTemplate(model, template);
+        } else {
+          log("Template not applicable for current context:", {
+            templateId,
+            useFor: template.useFor,
+            isCreatingTopic,
+          });
+        }
+      });
+    }, 500); // 500ms delay before starting template logic
   });
 
   // Clear applied flag when composer closes
