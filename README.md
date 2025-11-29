@@ -44,7 +44,8 @@ Because the detection is handled entirely on the Discourse side, any system that
 Each template has three configuration options:
 
 #### Template 1 (Report)
-- **template_1_id**: \eport\ - The URL parameter value to trigger this template
+- **template_1_id**: \
+eport\ - The URL parameter value to trigger this template
 - **template_1_text**: The text to pre-fill in the composer
 - **template_1_use_for**: \irst_post\ - Apply only when creating new topics
 
@@ -96,8 +97,10 @@ The url-composer-templates component is designed to work automatically with Docu
 
 Templates will be automatically applied based on:
 1. **Interact Mode**: 
-   - \DISCUSS\ mode  Uses triggerId hints (going, invite) or defaults to \eport\
-   - \COMMENT\ mode  Uses \eport\ template
+   - \DISCUSS\ mode  Uses triggerId hints (going, invite) or defaults to \
+eport\
+   - \COMMENT\ mode  Uses \
+eport\ template
 
 ### Custom Templates via HTML Attributes
 
@@ -229,6 +232,20 @@ template_2_use_for: "all_replies"
 2. **Verify URL**: Auto-open only works when URL contains \?composer_template=X\
 3. **Check has_topics**: If using \ifNoTopics\ mode, ensure the URL does NOT contain \&has_topics=true\
 4. **Enable Debug Mode**: Look for  emoji logs in the console
+
+### HTTP 409 "Draft is being edited in another window"
+
+This only appeared for Docuss-triggered composers and was traced to two behaviors:
+
+- The old "draft resurrection" watcher in `url-composer-templates.js` forcibly set every composer back to the global `"new_topic"` draft key whenever a template finished applying.
+- Auto-open also launched new Docuss composers with the same `"new_topic"` key, so Discourse tried to reuse an existing draft sequence that already had different text. The very first `/drafts.json` POST then failed with HTTP 409 because the optimistic-lock `draft_sequence` no longer lined up.
+
+**Fix (already in main):**
+
+1. Removed the watcher and any code that mutates `composerModel.draftKey` after the composer opens (`javascripts/discourse/api-initializers/url-composer-templates.js`).
+2. When Docuss auto-opens the composer we now provide the template body/title immediately *and* generate a unique draft key per session (`docuss-<template>-<timestamp>` in `z-auto-open-composer.js`). The first autosave therefore matches the payload the server expects, so no 409 occurs.
+
+If this behavior ever regresses, search the repo for `draftKey` mutations or `"new_topic"` overrides and remove them. Repeating the two steps above will restore the healthy flow.
 
 ### Wrong Template Applying
 
