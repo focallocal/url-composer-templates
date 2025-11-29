@@ -57,8 +57,7 @@ template_1_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 # Template 2 - Going
 template_2_enabled:
@@ -102,8 +101,7 @@ template_2_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 # Template 3 - Invite
 template_3_enabled:
@@ -147,8 +145,7 @@ template_3_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 # Template 4 - Wall
 template_4_enabled:
@@ -192,8 +189,7 @@ template_4_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 # Template 5 - Media
 template_5_enabled:
@@ -237,8 +233,7 @@ template_5_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 # Template 6 - Stories
 template_6_enabled:
@@ -282,8 +277,7 @@ template_6_mode:
   choices:
     - always
     - ifNoTopics
-    - ifUserHasNoTopic
-  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist; 'ifUserHasNoTopic' = only if current user hasn't posted"
+  description: "Auto-open mode: 'always' = always open; 'ifNoTopics' = only if no topics exist"
 
 debug_mode:
   default: false
