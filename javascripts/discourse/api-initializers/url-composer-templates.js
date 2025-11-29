@@ -168,107 +168,29 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Wait for Docuss navigation to complete before setting content
-    let timeoutId = null;
-    let applied = false;
-    
-    const applyContent = () => {
-      if (applied) return;
-      applied = true;
+    // Apply directly - timing is handled by the caller
+    const composerController = api.container.lookup("controller:composer");
+    const targetModel = composerController?.model || composerController?.get?.("model") || composerModel;
+
+    schedule("afterRender", () => {
+      if (targetModel.isDestroyed || targetModel.isDestroying) return;
       
-      if (timeoutId) clearTimeout(timeoutId);
-      
-      const composerController = api.container.lookup("controller:composer");
-      const targetModel = composerController?.model || composerController?.get?.("model") || composerModel;
-
-      schedule("afterRender", () => {
-        if (targetModel.isDestroyed || targetModel.isDestroying) return;
-        
-        targetModel.set("reply", template.text);
-        
-        if (template.title && targetModel.get("creatingTopic")) {
-          targetModel.set("title", template.title);
-          log("Applied title:", template.title);
-        }
-        
-        log("Template applied to model", targetModel === composerModel ? "(original)" : "(swapped)", ", Discourse will auto-save normally");
-      });
-    };
-    
-    // Check if model has __dcsNavigatedToTag flag set by Docuss
-    const checkAndApply = () => {
-      if (applied) return;
-      
-      // Always get the latest model instance from the controller
-      // This is crucial because navigation might swap the model instance
-      const composerController = api.container.lookup("controller:composer");
-      const currentModel = composerController?.model || composerController?.get?.("model");
-
-      if (!currentModel || currentModel.isDestroyed || currentModel.isDestroying) return;
-      
-      // Check if the original model signaled navigation
-      if (composerModel.__dcsNavigatedToTag) {
-        // Give a larger buffer (1000ms) for navigation-triggered saves and composer_messages refresh to complete.
-        // The 409 Conflict happens because the navigation triggers a save (bumping sequence on server),
-        // but the client model might not have updated its sequence yet.
-        setTimeout(() => {
-          if (applied) return;
-          
-          // Re-fetch current model in case it changed during timeout
-          const latestModel = composerController?.model || composerController?.get?.("model");
-          if (!latestModel || latestModel.isDestroyed || latestModel.isDestroying) return;
-
-          // Check isSaving on the LATEST model
-          if (latestModel.get("isSaving")) {
-            log("Composer (latest) is saving, waiting...");
-            setTimeout(checkAndApply, 100);
-            return;
-          }
-
-          if (latestModel !== composerModel) {
-            log("Composer model was swapped during navigation. Applying to new model.");
-          }
-
-          log("Docuss navigation complete. Draft sequence:", latestModel.get("draftSequence"));
-          
-          // Apply to the latest model
-          schedule("afterRender", () => {
-            // Double check we aren't overwriting user input that happened during the delay
-            const currentContent = latestModel.get("reply") || "";
-            if (currentContent.trim().length > 0 && !currentContent.includes(template.text.trim())) {
-               log("User typed content during navigation delay, skipping template");
-               return;
-            }
-
-            latestModel.set("reply", template.text);
-            
-            if (template.title && latestModel.get("creatingTopic")) {
-              latestModel.set("title", template.title);
-              log("Applied title:", template.title);
-            }
-            
-            log("Template applied, Discourse will auto-save normally");
-          });
-          
-          applied = true;
-          if (timeoutId) clearTimeout(timeoutId);
-
-        }, 1000);
-      } else {
-        // Check again in 50ms if Docuss is still navigating
-        setTimeout(checkAndApply, 50);
+      // Double check content again before writing
+      const freshContent = targetModel.get("reply") || "";
+      if (freshContent.trim().length > 0 && !freshContent.includes(template.text.trim())) {
+           log("Content changed during processing, skipping");
+           return;
       }
-    };
-    
-    // Start checking (with timeout fallback)
-    timeoutId = setTimeout(() => {
-      if (!applied) {
-        log("Docuss navigation timeout, applying template anyway");
-        applyContent();
+
+      targetModel.set("reply", template.text);
+      
+      if (template.title && targetModel.get("creatingTopic")) {
+        targetModel.set("title", template.title);
+        log("Applied title:", template.title);
       }
-    }, 1000); // 1 second max wait
-    
-    checkAndApply();
+      
+      log("Template applied to model", targetModel === composerModel ? "(original)" : "(swapped)", ", Discourse will auto-save normally");
+    });
 
     // Mark as applied so we don't re-apply on model changes
     sessionStorage.setItem(STORAGE_KEY_APPLIED, "true");
@@ -318,7 +240,7 @@ export default apiInitializer("1.8.0", (api) => {
           });
         }
       });
-    }, 500); // 500ms delay before starting template logic
+    }, 1000); // 1000ms delay before starting template logic
   });
 
   // Clear applied flag when composer closes
