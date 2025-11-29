@@ -265,11 +265,14 @@ export default apiInitializer("1.8.0", (api) => {
           }
 
           const initialRaw = (template?.text || "").trim();
+          const uniqueDraftKey = template?.id
+            ? `docuss-${template.id}-${Date.now()}`
+            : `docuss-${Date.now()}`;
 
           // Open composer with template content so the first autosave already matches
           composer.open({
             action: "createTopic",
-            draftKey: "new_topic",
+            draftKey: uniqueDraftKey,
             categoryId: categoryId,
             tags: tags.length > 0 ? tags : null,
             title: template.title || "",
