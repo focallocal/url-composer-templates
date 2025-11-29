@@ -20,6 +20,7 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
+  const STORAGE_KEY_TEMPLATE_APPLIED = "url_composer_template_applied";
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
@@ -263,14 +264,23 @@ export default apiInitializer("1.8.0", (api) => {
             }
           }
 
-          // Open composer - template text will be applied by url-composer-templates.js
+          const initialRaw = (template?.text || "").trim();
+
+          // Open composer with template content so the first autosave already matches
           composer.open({
             action: "createTopic",
             draftKey: "new_topic",
             categoryId: categoryId,
             tags: tags.length > 0 ? tags : null,
             title: template.title || "",
+            raw: initialRaw || undefined,
           });
+
+          const templateInjected = initialRaw || template.title;
+          if (templateInjected) {
+            sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, template.id);
+            sessionStorage.setItem(STORAGE_KEY_TEMPLATE_APPLIED, "true");
+          }
 
           log("Composer opened successfully - template will be applied by url-composer-templates.js");
           
