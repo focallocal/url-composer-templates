@@ -223,7 +223,6 @@ export default apiInitializer("1.8.0", (api) => {
       }
     });
   });
-  });
 
   // Clear applied flag when composer closes
   api.onAppEvent("composer:closed", () => {
