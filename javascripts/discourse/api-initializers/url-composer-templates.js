@@ -1,6 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
-import { schedule, cancel } from "@ember/runloop";
-import { ajax } from "discourse/lib/ajax";
+import { schedule } from "@ember/runloop";
 
 export default apiInitializer("1.8.0", (api) => {
   if (!settings.enable_url_composer_templates) {
@@ -20,38 +19,6 @@ export default apiInitializer("1.8.0", (api) => {
   const STORAGE_KEY_APPLIED = "url_composer_template_applied";
   const STORAGE_KEY_USER_POSTED = "url_composer_user_posted";
   const STORAGE_KEY_MESSAGE_TS = "url_composer_message_ts";
-  
-  // Draft resurrection watcher (shared with z-auto-open-composer.js)
-  let draftWatchInterval = null;
-  
-  const startDraftWatcher = (composerModel) => {
-    if (draftWatchInterval) {
-      clearInterval(draftWatchInterval);
-    }
-    
-    log("Starting draft resurrection watcher");
-    
-    draftWatchInterval = setInterval(() => {
-      if (!composerModel || !composerModel.draftKey) {
-        log("Draft cleared or composer closed, stopping watcher");
-        clearInterval(draftWatchInterval);
-        draftWatchInterval = null;
-        return;
-      }
-      
-      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
-      if (!templateApplied) {
-        return;
-      }
-      
-      const draftKey = composerModel.draftKey;
-      if (draftKey && draftKey !== "new_topic") {
-        log("Draft resurrection detected, clearing draftKey:", draftKey);
-        composerModel.set("draftKey", "new_topic");
-      }
-    }, 50);
-  };
-
   // Listen for composer template from iframe via postMessage
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'dcs-composer-template') {
