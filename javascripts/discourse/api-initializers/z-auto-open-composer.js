@@ -290,28 +290,16 @@ export default apiInitializer("1.8.0", (api) => {
             }
           }
 
-          // Set flag to tell url-composer-templates.js to back off
-          sessionStorage.setItem('url_composer_opening_programmatically', 'true');
-          
-          // Open composer with template text directly
+          // Open composer - template text will be applied by url-composer-templates.js
           composer.open({
             action: "createTopic",
             draftKey: "new_topic",
             categoryId: categoryId,
             tags: tags.length > 0 ? tags : null,
             title: template.title || "",
-            body: template.text || "", // Pass template text as body
           });
 
-          log("Composer opened successfully with template text");
-          
-          // Clear the flag after a delay to allow other scripts to resume normal operation
-          setTimeout(() => {
-            sessionStorage.removeItem('url_composer_opening_programmatically');
-          }, 2000);
-          
-          // We don't need to block saveDraft anymore because we are passing the body directly
-          // Discourse will handle the draft creation naturally.
+          log("Composer opened successfully - template will be applied by url-composer-templates.js");
           
           // Start draft resurrection watcher just in case
           startDraftWatcher(composer);

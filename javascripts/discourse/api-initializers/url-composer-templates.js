@@ -149,13 +149,6 @@ export default apiInitializer("1.8.0", (api) => {
   const applyTemplate = (composerModel, template) => {
     if (!composerModel || !template) return;
 
-    // Check if z-auto-open-composer.js is currently opening the composer
-    if (sessionStorage.getItem('url_composer_opening_programmatically') === 'true') {
-      log("Skipping template application - composer is being opened programmatically by auto-open logic");
-      sessionStorage.removeItem(STORAGE_KEY_TEMPLATE_ID);
-      return;
-    }
-
     // Only apply if composer is empty or has default text
     const currentContent = composerModel.get("reply") || "";
     
