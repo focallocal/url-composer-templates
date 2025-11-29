@@ -193,10 +193,23 @@ export default apiInitializer("1.8.0", (api) => {
     // Check if model has __dcsNavigatedToTag flag set by Docuss
     const checkAndApply = () => {
       if (applied) return;
+      if (composerModel.isDestroyed || composerModel.isDestroying) return;
       
       if (composerModel.__dcsNavigatedToTag) {
-        log("Docuss navigation complete, applying template now");
-        applyContent();
+        // Give a small buffer for any navigation-triggered saves to start
+        setTimeout(() => {
+          if (applied) return;
+          if (composerModel.isDestroyed || composerModel.isDestroying) return;
+
+          if (composerModel.get("isSaving")) {
+            log("Composer is saving, waiting...");
+            setTimeout(checkAndApply, 100);
+            return;
+          }
+
+          log("Docuss navigation complete and no save in progress, applying template");
+          applyContent();
+        }, 250);
       } else {
         // Check again in 50ms if Docuss is still navigating
         setTimeout(checkAndApply, 50);
