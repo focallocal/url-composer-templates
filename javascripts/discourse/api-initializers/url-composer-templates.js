@@ -178,33 +178,53 @@ export default apiInitializer("1.8.0", (api) => {
       
       if (timeoutId) clearTimeout(timeoutId);
       
+      const composerController = api.container.lookup("controller:composer");
+      const targetModel = composerController?.model || composerController?.get?.("model") || composerModel;
+
       schedule("afterRender", () => {
-        composerModel.set("reply", template.text);
+        if (targetModel.isDestroyed || targetModel.isDestroying) return;
         
-        if (template.title && composerModel.get("creatingTopic")) {
-          composerModel.set("title", template.title);
+        targetModel.set("reply", template.text);
+        
+        if (template.title && targetModel.get("creatingTopic")) {
+          targetModel.set("title", template.title);
           log("Applied title:", template.title);
         }
         
-        log("Template applied, Discourse will auto-save normally");
+        log("Template applied to model", targetModel === composerModel ? "(original)" : "(swapped)", ", Discourse will auto-save normally");
       });
     };
     
     // Check if model has __dcsNavigatedToTag flag set by Docuss
     const checkAndApply = () => {
       if (applied) return;
-      if (composerModel.isDestroyed || composerModel.isDestroying) return;
       
+      // Always get the latest model instance from the controller
+      // This is crucial because navigation might swap the model instance
+      const composerController = api.container.lookup("controller:composer");
+      const currentModel = composerController?.model || composerController?.get?.("model");
+
+      if (!currentModel || currentModel.isDestroyed || currentModel.isDestroying) return;
+      
+      // Check if the original model signaled navigation
       if (composerModel.__dcsNavigatedToTag) {
         // Give a small buffer for any navigation-triggered saves to start
         setTimeout(() => {
           if (applied) return;
-          if (composerModel.isDestroyed || composerModel.isDestroying) return;
+          
+          // Re-fetch current model in case it changed during timeout
+          const latestModel = composerController?.model || composerController?.get?.("model");
+          if (!latestModel || latestModel.isDestroyed || latestModel.isDestroying) return;
 
-          if (composerModel.get("isSaving")) {
-            log("Composer is saving, waiting...");
+          // Check isSaving on the LATEST model
+          if (latestModel.get("isSaving")) {
+            log("Composer (latest) is saving, waiting...");
             setTimeout(checkAndApply, 100);
             return;
+          }
+
+          if (latestModel !== composerModel) {
+            log("Composer model was swapped during navigation. Applying to new model.");
           }
 
           log("Docuss navigation complete and no save in progress, applying template");
