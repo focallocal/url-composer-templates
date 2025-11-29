@@ -162,53 +162,17 @@ export default apiInitializer("1.8.0", (api) => {
 
     log("Applying template:", template.id);
     
-    // Override saveDraft to block saves during template application
-    const originalSaveDraft = composerModel.saveDraft;
-    let saveBlocked = true;
-    composerModel.saveDraft = function() {
-      if (saveBlocked) {
-        log("Draft save blocked during template application");
-        return Promise.resolve();
+    // Simply set the template content - don't fight with Discourse's draft system
+    schedule("afterRender", () => {
+      // Set template values
+      composerModel.set("reply", template.text);
+      
+      if (template.title && composerModel.get("creatingTopic")) {
+        composerModel.set("title", template.title);
+        log("Applied title:", template.title);
       }
-      return originalSaveDraft.apply(composerModel, arguments);
-    };
-    
-    // Cancel any pending draft saves to prevent 409 conflicts
-    if (composerModel._saveDraftDebounce) {
-      cancel(composerModel._saveDraftDebounce);
-      composerModel._saveDraftDebounce = null;
-      log("Cancelled pending draft save debounce");
-    }
-    
-    // Delete any existing draft to prevent "discard" dialog
-    const draftKey = composerModel.get("draftKey");
-    const deleteDraftPromise = draftKey
-      ? ajax(`/drafts/${draftKey}.json`, { type: "DELETE" })
-          .then(() => log("Existing draft deleted:", draftKey))
-          .catch((e) => {
-            if (e.jqXHR?.status !== 404) {
-              log("Draft deletion warning:", e);
-            }
-          })
-      : Promise.resolve();
-
-    // Wait for draft deletion, then apply template
-    deleteDraftPromise.finally(() => {
-      schedule("afterRender", () => {
-        // Set template values after draft is deleted
-        composerModel.set("reply", template.text);
-        
-        if (template.title && composerModel.get("creatingTopic")) {
-          composerModel.set("title", template.title);
-          log("Applied title:", template.title);
-        }
-        
-        // Add delay before re-enabling draft saving to avoid 409 conflicts
-        setTimeout(() => {
-          saveBlocked = false;
-          log("Draft saving re-enabled after delay");
-        }, 500);
-      });
+      
+      log("Template applied, Discourse will auto-save normally");
     });
 
     // Mark as applied so we don't re-apply on model changes
