@@ -278,8 +278,29 @@ export default apiInitializer("1.8.0", (api) => {
 
           const templateInjected = initialRaw || template.title;
           if (templateInjected) {
+            // Mark template as applied immediately so url-composer-templates.js won't duplicate work
             sessionStorage.setItem(STORAGE_KEY_TEMPLATE_ID, template.id);
             sessionStorage.setItem(STORAGE_KEY_TEMPLATE_APPLIED, "true");
+
+            // Ensure the composer model actually shows the injected content for the user
+            schedule("afterRender", () => {
+              const composerCtrl = api.container.lookup("controller:composer");
+              const model = composerCtrl?.model || composerCtrl?.get?.("model");
+
+              if (!model || model.isDestroying || model.isDestroyed) {
+                return;
+              }
+
+              const currentReply = (model.get?.("reply") || model.reply || "").trim();
+              if (!currentReply && initialRaw) {
+                model.set?.("reply", initialRaw) || (model.reply = initialRaw);
+              }
+
+              const currentTitle = (model.get?.("title") || model.title || "").trim();
+              if (!currentTitle && template.title && model.get?.("creatingTopic")) {
+                model.set?.("title", template.title) || (model.title = template.title);
+              }
+            });
           }
 
           log("Composer opened successfully - template will be applied by url-composer-templates.js");
