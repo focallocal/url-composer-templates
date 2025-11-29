@@ -20,43 +20,6 @@ export default apiInitializer("1.8.0", (api) => {
 
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
-  const STORAGE_KEY_APPLIED = "url_composer_template_applied";
-  
-  // Draft resurrection watcher - prevents Discourse from resurrecting deleted drafts
-  let draftWatchInterval = null;
-  
-  const startDraftWatcher = (composer) => {
-    if (draftWatchInterval) {
-      clearInterval(draftWatchInterval);
-    }
-    
-    log("Starting draft resurrection watcher");
-    
-    draftWatchInterval = setInterval(() => {
-      const model = composer.get("model");
-      
-      // If composer closed or draft manually saved, stop watching
-      if (!model || !model.draftKey) {
-        log("Draft cleared or composer closed, stopping watcher");
-        clearInterval(draftWatchInterval);
-        draftWatchInterval = null;
-        return;
-      }
-      
-      // Check if template was applied
-      const templateApplied = sessionStorage.getItem(STORAGE_KEY_APPLIED);
-      if (!templateApplied) {
-        return;
-      }
-      
-      // If draft is trying to resurrect, kill it
-      const draftKey = model.draftKey;
-      if (draftKey && draftKey !== "new_topic") {
-        log("Draft resurrection detected, clearing draftKey:", draftKey);
-        model.set("draftKey", "new_topic");
-      }
-    }, 50); // Check every 50ms
-  };
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
@@ -310,9 +273,6 @@ export default apiInitializer("1.8.0", (api) => {
           });
 
           log("Composer opened successfully - template will be applied by url-composer-templates.js");
-          
-          // Start draft resurrection watcher just in case
-          startDraftWatcher(composer);
           
         } catch (error) {
           log("Error opening composer:", error);
