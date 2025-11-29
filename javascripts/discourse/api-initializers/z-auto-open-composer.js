@@ -131,6 +131,13 @@ export default apiInitializer("1.8.0", (api) => {
     if (!templateId) {
       return;
     }
+    
+    // Check if composer is already open - if so, don't try to open it again
+    const composer = api.container?.lookup?.("controller:composer");
+    if (composer && composer.get("model")) {
+      log("Composer already open, skipping auto-open");
+      return;
+    }
 
     log("Checking template:", templateId, "has_topics:", hasTopics);
 
