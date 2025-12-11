@@ -21,6 +21,36 @@ export default apiInitializer("1.8.0", (api) => {
   const STORAGE_KEY_AUTO_OPEN_CHECKED = "url_composer_auto_open_checked";
   const STORAGE_KEY_TEMPLATE_ID = "url_composer_template_id";
   const STORAGE_KEY_TEMPLATE_APPLIED = "url_composer_template_applied";
+  const CACHE_PREFIX_USER_POSTED = "url_composer_user_posted_";
+  const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache TTL
+
+  // Cache helper functions
+  const getCachedUserPosted = (tagsKey, userId) => {
+    const cacheKey = `${CACHE_PREFIX_USER_POSTED}${userId}_${tagsKey}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (!cached) return null;
+    
+    try {
+      const { hasPosted, timestamp } = JSON.parse(cached);
+      // Check if cache is still valid
+      if (Date.now() - timestamp < CACHE_TTL_MS) {
+        return hasPosted;
+      }
+      // Cache expired, remove it
+      sessionStorage.removeItem(cacheKey);
+    } catch (e) {
+      sessionStorage.removeItem(cacheKey);
+    }
+    return null;
+  };
+
+  const setCachedUserPosted = (tagsKey, userId, hasPosted) => {
+    const cacheKey = `${CACHE_PREFIX_USER_POSTED}${userId}_${tagsKey}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      hasPosted,
+      timestamp: Date.now()
+    }));
+  };
 
   // Get template settings by ID
   const getTemplateSettings = (templateId) => {
@@ -165,6 +195,20 @@ export default apiInitializer("1.8.0", (api) => {
       
       // Search for topics with these tags - Discourse search will only return topics visible to current user
       const tagsKey = tags.join("+");
+      
+      // Check cache first to avoid unnecessary API calls
+      const cachedResult = getCachedUserPosted(tagsKey, currentUser.id);
+      if (cachedResult !== null) {
+        log("📦 Using cached result for tags:", tagsKey, "hasPosted:", cachedResult);
+        if (cachedResult) {
+          log("User has already posted to these tags (cached). NOT opening composer.");
+        } else {
+          log("User has NOT posted to these tags (cached). Opening composer.");
+          openComposerNow(template, params);
+        }
+        return;
+      }
+      
       // Use advanced search syntax
       const searchQuery = `tags:${tagsKey} @${currentUser.username} order:latest`;
       
@@ -198,6 +242,10 @@ export default apiInitializer("1.8.0", (api) => {
           log(`Topic "${topic.title}" - isOP: ${isOP}, isFirstPoster: ${isFirstPoster}, isAuthorId: ${isAuthorId}`);
           return isOP || isFirstPoster || isAuthorId;
         });
+        
+        // Cache the result for future checks
+        setCachedUserPosted(tagsKey, currentUser.id, hasPosted);
+        log("📦 Cached result for tags:", tagsKey, "hasPosted:", hasPosted);
         
         if (hasPosted) {
           log("User has already posted to these tags. NOT opening composer.");

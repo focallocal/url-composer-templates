@@ -165,142 +165,47 @@ Both commits pushed to GitHub on November 27, 2025.
 
 ---
 
-## Bug #6: Auto-Open Composer Always Triggers
-
-**Root Cause:**  
-The initializer watches for any tag/string in the URL and auto-opens a template in Discourse whenever it sees a match. This works when you *always* want to open a template, but breaks when you need conditions like:
-- "Don't open if any topic already exists"
-- "Don't open if this user already posted"
-
-**What Was Attempted:**
-1. **Conditional Search Flag** (`auto_open_check_user_only`):
-   - When `true`: searches `tags:tag1+tag2 @username`
-   - When `false`: searches `tags:tag1+tag2`
-   - Goal: distinguish "any topic exists" vs. "this user's topic exists"
-
-2. **500ms Draft Save Delay**:
-   - Added delay before re-enabling draft saves
-   - Intended to avoid clashes with Discourse's auto-save timer
-
-3. **Basic Logging**:
-   - Added `console.log` for trigger ID and template name
-   - Limited visibility into decision flow
-
-**Why It Failed:**
-- Discourse search API returns results before the search index updates → system thinks "no topics exist" even right after posting
-- `@username` filtering doesn't help if username doesn't match exactly or tags don't align
-- Never cancels Discourse's pending `_saveDraft` timers → queued saves still fire after the 500ms block, resurrecting drafts
-- Almost zero telemetry: no logs of search responses, matched tags, or decision paths
-
-**Impact:**  
-Users keep seeing the composer open even after they've already created a topic for that tag combination.
-
----
-
-## Bug #7: Template Mode Confusion
-
-**Root Cause:**  
-No explicit modes for "always", "if no topics", or "if user has no topic". Logic is implicit and hard to reason about.
-
-**Current Settings:**
-- `auto_open_check_user_only: true/false` is binary and confusing
-- Admin can't easily understand when templates will or won't apply
-
-**Proposed Fix:**
-Create three explicit modes in admin settings:
-
-1. **`always`**: Opens template every time the tag(s) match (no searches, no checks)
-2. **`ifNoTopics`**: Searches for any topic with these tags; only opens if none exist
-3. **`ifUserHasNoTopic`**: Searches for topics by this specific user with these tags; only opens if user hasn't posted
-
-**Expected Outcome:** Clear, predictable behavior that admins can configure without guessing
-
-**Status:** Proposed, not yet implemented
-
----
-
-## Recent Infrastructure Improvements (November 28, 2025)
-
-### Standalone URL Matching
-**Problem:** Component relied entirely on Docuss sending `?composer_template=X` query parameters.
-
-**Solution:**
-- Added `template_param_key` setting (defaults to `composer_template`) so admins can change the query parameter name or disable query-parameter detection entirely
-- Added per-template `template_X_url_match` fields for substring matching
-- Examples:
-  - Set `template_1_url_match: "/tag/introductions"` → trigger when URL contains that path
-  - Set `template_2_url_match: "/tags/intersection/going"` → trigger on specific tag intersection
-
-**Files Modified:**
-- `settings.yml`: Added `template_param_key` and 6 new `template_X_url_match` fields
-- `url-composer-templates.js`: Added `getTemplateIdFromPath()` function, merged with query parameter detection
-- `README.md`: Documented standalone usage, provided examples for non-Docuss workflows
-
-**Commits:**
-- Added configurable trigger settings (November 28, 2025)
-
-**Status:** ✅ Implemented, awaiting user testing
-
----
-
 ## Next Steps for Diagnosis
 
 1. **Enable Debug Mode**
-   - Turn on `debug_mode` in theme settings
-   - Check browser console for 🎨 emoji-prefixed logs
-   - Verify template ID detection and application flow
+   - Add console.log statements to verify code execution
+   - Check if template ID is being received
+   - Verify sessionStorage values
 
 2. **Check Discourse Admin**
-   - Confirm theme component is enabled and added to active theme
+   - Verify theme component is enabled
    - Check for JavaScript errors in browser console
-   - Rebuild Discourse assets if recently deployed
+   - Rebuild Discourse assets
 
 3. **Test Isolation**
-   - Test with manual URL: `/?composer_template=report`
-   - Test with URL substring: `/tags/intersection/going`
-   - Verify basic composer opening without auto-open
+   - Test template component independently (without Docuss)
+   - Test with manual URL parameters
+   - Verify basic composer opening works
 
-4. **Implement Missing Fixes**
-   - Add explicit template modes (`always`, `ifNoTopics`, `ifUserHasNoTopic`)
-   - Cancel Discourse `_saveDraft` debounce after deleting drafts
-   - Add comprehensive logging (search queries, results, decision tree)
-   - Cache "user already posted" decisions per tag to handle search lag
+4. **Review Integration**
+   - Check Docuss plugin code that sets sessionStorage
+   - Verify URL parameter format matches expected pattern
+   - Test timing of storage key setting vs. component reading
 
 ---
 
 ## Additional Context
 
 ### Related Components
-- **Docuss Plugin** (dcs-discourse-plugin): Sets initial sessionStorage values, passes `composer_template` query params
-- **URL Composer Templates**: Reads URL/storage and applies templates
-- **Auto-Open Composer** (z-auto-open-composer.js): Handles conditional composer opening
+- **Docuss Plugin** (dcs-discourse-plugin): Sets initial sessionStorage values
+- **URL Composer Templates**: Reads storage and applies templates
 - **Discourse Composer**: Target component being manipulated
 
 ### Browser Environment
 - SessionStorage used for cross-component communication
-- Same-origin policy required
-- Timing dependencies on Discourse's Ember lifecycle
+- Requires same-origin policy compliance
+- May have timing dependencies on Discourse loading
 
 ### User Environment
-- Discourse version: v3.6.0.beta3-latest
-- Browser: Modern (supports ES6+)
-- Theme: Multiple components active (Docuss, URL Composer Templates, Auto-Open, First Login Redirect)
+- Discourse version: Unknown
+- Browser: Unknown
+- Theme setup: Unknown
 
 ---
 
-## Summary of All Fixes to Date
-
-| Bug | Fix Attempt | Outcome | Status |
-|-----|-------------|---------|--------|
-| Template text not applying | Removed title check (only check content) | ❌ User: "didn't work" | Needs investigation |
-| Applied flag not cleared | Moved constants to module scope | ❌ User: "didn't work" | Needs investigation |
-| Composer reopening | Added persistent user-posted tracking | ❌ User: "didn't work" | Needs investigation |
-| Auto-open always triggers | Added search with @username filter | ❌ Still opens after posting | Search index lag |
-| Draft save conflicts | 500ms delay before re-enable | ❌ Still seeing 409s | Doesn't cancel queued saves |
-| No template mode clarity | Proposed 3 explicit modes | 🔄 Not implemented | Planned |
-| Hard-coded trigger strings | Added configurable URL matching | ✅ Implemented | Awaiting test |
-
----
-
-**Report Updated:** November 28, 2025  
-**Status:** Multiple fixes applied, core issues persist. Requires debug logging and systematic testing to diagnose root cause.
+**Report Status:** Awaiting user feedback on specific failure modes and environment details.
